@@ -49,6 +49,17 @@ export function App() {
     [progress, name, pro],
   );
 
+  // A friend's link pasted while the app is already open changes only the
+  // fragment, which does not remount anything. Listen for it.
+  useEffect(() => {
+    const onHash = () => {
+      const found = scoreFromHash(location.hash);
+      if (found) setIncoming(found);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
   const dismissIncoming = useCallback(() => {
     setIncoming(null);
     // Drop the payload so a refresh does not re-open the challenge.
