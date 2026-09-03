@@ -8,7 +8,7 @@ import { UpgradeButton } from '../components/Upgrade';
 import { ShareButton } from '../components/Share';
 
 export function Home({
-  progress, pro, onPick, onDojo, onLab, onUpgrade, onShare, onReset,
+  progress, pro, onPick, onDojo, onLab, onUpgrade, onShare, onBoard, boardCount, onReset,
 }: {
   progress: Progress;
   pro: boolean;
@@ -17,6 +17,8 @@ export function Home({
   onLab: () => void;
   onUpgrade: () => void;
   onShare: () => void;
+  onBoard: () => void;
+  boardCount: number;
   onReset: () => void;
 }) {
   const leaks = activeLeaks(progress);
@@ -61,7 +63,23 @@ export function Home({
         </div>
       )}
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        <button
+          onClick={onBoard}
+          className="panel border-amber-400/25 px-4 py-3.5 text-left transition
+                     hover:border-amber-300/60 hover:bg-amber-400/5"
+        >
+          <div className="flex items-baseline justify-between">
+            <span className="font-semibold text-emerald-50">Leaderboard</span>
+            <span className="tnum text-sm text-amber-300">{boardCount}</span>
+          </div>
+          <span className="mt-0.5 block text-sm text-emerald-200/55">
+            {boardCount > 1
+              ? `You and ${boardCount - 1} ${boardCount === 2 ? 'friend' : 'friends'}`
+              : 'Add friends by opening their links'}
+          </span>
+        </button>
+
         <button
           onClick={onDojo}
           disabled={leaks.length === 0}

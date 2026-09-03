@@ -12,7 +12,7 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 249 tests
+npm test        # 267 tests
 npm run build   # production bundle
 npm run deploy  # publish to GitHub Pages
 ```
@@ -64,6 +64,22 @@ line-by-line comparison, and their worst leak named.
 A checksum rides along and the app warns you when a link has been edited. That
 catches mangling in transit and casual fiddling — it is **not** proof. A share
 link is a boast, not a receipt.
+
+## Leaderboard
+
+There is no server, so the board propagates instead of syncing. Opening
+someone's share link files their score into your roster. **Copy a link with all
+N** hands over everyone you know about in one URL. Pass that around a group and
+everybody converges on the same table.
+
+Sortable by levels passed, accuracy, bb/100, drills answered or median read
+time. Your own row is always live from your real progress, never a stale
+snapshot that arrived inside someone else's link.
+
+Be clear about what it is: a snapshot of the links you have been sent, not a
+live ranking. Someone who has not shared since Tuesday still shows Tuesday.
+Entries under 20 drills sit below the ranked ones — a perfect three out of three
+is not a season. Edited links get flagged, but nothing here is verified.
 
 ## Upgraded mode
 

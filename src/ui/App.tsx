@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getLevel, isHandPlay } from '../curriculum/registry';
 import { LevelId, LevelModule } from '../curriculum/types';
 import {
@@ -11,11 +11,15 @@ import { deactivate, readTier } from '../coach/pro';
 import {
   DecodedScore, SharedScore, buildRunScore, buildScore, loadName, scoreFromHash,
 } from '../coach/share';
+import {
+  StoredEntry, boardFromHash, loadRoster, mergeEntry, mergeMany, saveRoster,
+} from '../coach/leaderboard';
 import { Home } from './views/Home';
 import { LevelView } from './views/LevelView';
 import { DojoView } from './views/DojoView';
 import { HandPlayView } from './views/HandPlayView';
 import { LabView } from './views/LabView';
+import { LeaderboardView } from './views/LeaderboardView';
 import { UpgradeModal } from './components/Upgrade';
 import { ShareModal, SharedScoreView } from './components/Share';
 
@@ -25,7 +29,8 @@ type View =
   | { k: 'hands' }
   | { k: 'dojo' }
   | { k: 'pack'; level: LevelModule; boss?: ErrorTag }
-  | { k: 'lab' };
+  | { k: 'lab' }
+  | { k: 'board' };
 
 export function App() {
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
@@ -38,6 +43,35 @@ export function App() {
   const [incoming, setIncoming] = useState<DecodedScore | null>(
     () => (typeof location === 'undefined' ? null : scoreFromHash(location.hash)),
   );
+  const [roster, setRoster] = useState<StoredEntry[]>(() => loadRoster());
+
+  useEffect(() => { saveRoster(roster); }, [roster]);
+
+  const me = useMemo(() => buildScore(progress, name || 'You', pro), [progress, name, pro]);
+
+  const updateRoster = useCallback((next: StoredEntry[]) => setRoster(next), []);
+
+  /** A board link merges everyone it carries and drops you on the table. */
+  const takeBoard = useCallback((hash: string): boolean => {
+    const found = boardFromHash(hash);
+    if (!found) return false;
+    setRoster((r) => mergeMany(r, found.scores, found.intact, Date.now()));
+    setView({ k: 'board' });
+    if (typeof history !== 'undefined') {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+    return true;
+  }, []);
+
+  // A shared score also earns a place on your board, so it fills up by itself.
+  useEffect(() => {
+    if (!incoming) return;
+    setRoster((r) => mergeEntry(r, incoming.score, incoming.intact, Date.now()));
+  }, [incoming]);
+
+  useEffect(() => {
+    if (typeof location !== 'undefined') takeBoard(location.hash);
+  }, [takeBoard]);
 
   const shareOverall = useCallback(
     () => setSharing(buildScore(progress, name, pro)),
@@ -53,12 +87,13 @@ export function App() {
   // fragment, which does not remount anything. Listen for it.
   useEffect(() => {
     const onHash = () => {
+      if (takeBoard(location.hash)) return;
       const found = scoreFromHash(location.hash);
       if (found) setIncoming(found);
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, []);
+  }, [takeBoard]);
 
   const dismissIncoming = useCallback(() => {
     setIncoming(null);
@@ -83,7 +118,7 @@ export function App() {
     return (
       <SharedScoreView
         theirs={incoming.score}
-        yours={buildScore(progress, name || 'You', pro)}
+        yours={me}
         intact={incoming.intact}
         hasProgress={progress.history.length > 0}
         onStart={() => {
@@ -106,6 +141,8 @@ export function App() {
             onLab={() => setView({ k: 'lab' })}
             onUpgrade={() => setModal(true)}
             onShare={shareOverall}
+            onBoard={() => setView({ k: 'board' })}
+            boardCount={roster.length + 1}
             onReset={() => setProgress(emptyProgress())}
           />
         );
@@ -160,6 +197,11 @@ export function App() {
             onShare={(c, t, ms) => shareRun('L0', view.level.title, c, t, ms)}
             onExit={() => setView({ k: 'dojo' })}
           />
+        );
+
+      case 'board':
+        return (
+          <LeaderboardView roster={roster} me={me} onRoster={updateRoster} onExit={home} />
         );
 
       case 'lab':

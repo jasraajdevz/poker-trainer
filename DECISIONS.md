@@ -144,3 +144,30 @@ reverse; say the word on any of them.
 38. **A tie is reported as a tie.** The first version counted only strict wins,
     so two identical scores read as "they have you on every measure". Caught by
     opening my own link.
+
+## Leaderboard
+
+39. **The board propagates rather than syncing.** A live leaderboard needs a
+    server, and the brief says no backend. So opening a share link files that
+    player into your roster, and a board link carries everyone you know about.
+    Passing one around a group converges everybody on the same table without
+    hosting anything.
+40. **The UI says what it is.** It is a snapshot of links you have been sent, not
+    a live ranking, and the view says so in plain words rather than implying a
+    freshness it cannot deliver.
+41. **Your own row is computed live, never restored from a link.** A stale copy
+    of you that arrived inside someone else's board is discarded in favour of
+    your real progress, so you can never be shown out of date to yourself.
+42. **Entries under 20 drills are provisional and sink below the ranked.** Three
+    correct answers at 100% should not top a table over someone with 400 drills
+    at 84%. Volume is shown as its own column so the tradeoff is visible.
+43. **Ranking is by a chosen column, not an invented composite.** Every column is
+    a number the app already computes; a weighted "rating" would be a made-up
+    figure, which is the one thing this project does not do. EV is normalised to
+    bb/100 so a long session is not punished for being long.
+44. **Board entries are tuples, not objects.** A twelve-player board has to
+    survive being pasted into a chat window; tuple rows keep a full board inside
+    roughly 700 characters.
+45. **Board links are re-validated row by row.** Same treatment as share links:
+    clamped numbers, unknown tags dropped, names stripped of hidden characters,
+    non-array rows discarded rather than trusted.
