@@ -12,7 +12,7 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 236 tests
+npm test        # 249 tests
 npm run build   # production bundle
 npm run deploy  # publish to GitHub Pages
 ```
@@ -50,6 +50,20 @@ Every wrong answer is tagged. The Dojo ranks your leaks by the EV you actually
 gave up, projects it to bb/100, and generates **new** spots that test the same
 skill. Spaced repetition brings a mistake back after 1, 3, 10 and 30 drills; it
 only leaves the queue after a clean answer at every interval.
+
+## Share links
+
+**Share score** on the home screen, or **Share this run** on any level summary.
+The whole score is packed into the URL fragment — name, accuracy, levels passed,
+EV given up, median read time, worst leak — so it works with no account, no
+server, and no data leaving the browser. Links come out around 150 characters.
+
+Open someone's link and you get a head-to-head: their card beside yours, a
+line-by-line comparison, and their worst leak named.
+
+A checksum rides along and the app warns you when a link has been edited. That
+catches mangling in transit and casual fiddling — it is **not** proof. A share
+link is a boast, not a receipt.
 
 ## Upgraded mode
 

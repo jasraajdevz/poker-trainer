@@ -13,6 +13,7 @@ import { L8_COACHED_HANDS } from '../../curriculum/l8-fullhands';
 import { sizingLines } from '../../curriculum/l6-sizing';
 import { budget } from '../../coach/pro';
 import { CardRow } from '../components/PlayingCard';
+import { ShareButton } from '../components/Share';
 
 interface HeroNode {
   street: string;
@@ -46,7 +47,13 @@ const HANDS = 10;
 const HERO_SEATS: Position[] = ['BTN', 'CO', 'SB', 'HJ', 'BB', 'UTG', 'BTN', 'CO', 'BB', 'BTN'];
 const CAST: ArchetypeId[] = ['tag', 'station', 'nit', 'tag', 'station'];
 
-export function HandPlayView({ pro, onExit }: { pro: boolean; onExit: () => void }) {
+export function HandPlayView({
+  pro, onShare, onExit,
+}: {
+  pro: boolean;
+  onShare: (correct: number, total: number) => void;
+  onExit: () => void;
+}) {
   const [handNo, setHandNo] = useState(0);
   const [seed] = useState(() => `h${Date.now()}`);
   const [state, setState] = useState<HandState | null>(null);
@@ -210,7 +217,13 @@ export function HandPlayView({ pro, onExit }: { pro: boolean; onExit: () => void
         <p className="mt-4 text-sm text-emerald-200/60">
           Net result is mostly luck over ten hands. EV given up is not — that number is yours.
         </p>
-        <button onClick={onExit} className="btn-primary mt-6">Back to levels</button>
+        <div className="mt-6 flex gap-3">
+          <button onClick={onExit} className="btn-primary">Back to levels</button>
+          <ShareButton
+            onClick={() => onShare(scored.filter((x) => x.net > 0).length, scored.length)}
+            label="Share this session"
+          />
+        </div>
       </div>
     );
   }

@@ -2,18 +2,22 @@ import { useCallback, useEffect, useState } from 'react';
 import { getLevel, isHandPlay } from '../curriculum/registry';
 import { LevelId, LevelModule } from '../curriculum/types';
 import {
-  DrillResult, Progress, applyResult, emptyProgress, finishAttempt, loadProgress,
-  saveProgress, startAttempt, timeTrend,
+  DrillResult, LEVEL_ORDER, Progress, applyResult, emptyProgress, finishAttempt,
+  levelProgress, loadProgress, saveProgress, startAttempt, timeTrend,
 } from '../coach/progress';
 import { BOSS_PASS, clearTag } from '../coach/dojo';
 import { ErrorTag } from '../coach/mistakes';
 import { deactivate, readTier } from '../coach/pro';
+import {
+  DecodedScore, SharedScore, buildRunScore, buildScore, loadName, scoreFromHash,
+} from '../coach/share';
 import { Home } from './views/Home';
 import { LevelView } from './views/LevelView';
 import { DojoView } from './views/DojoView';
 import { HandPlayView } from './views/HandPlayView';
 import { LabView } from './views/LabView';
 import { UpgradeModal } from './components/Upgrade';
+import { ShareModal, SharedScoreView } from './components/Share';
 
 type View =
   | { k: 'home' }
@@ -29,6 +33,29 @@ export function App() {
   const [view, setView] = useState<View>({ k: 'home' });
   const [modal, setModal] = useState(false);
   const [bossLabel, setBossLabel] = useState<string | undefined>();
+  const [name, setName] = useState(() => loadName());
+  const [sharing, setSharing] = useState<SharedScore | null>(null);
+  const [incoming, setIncoming] = useState<DecodedScore | null>(
+    () => (typeof location === 'undefined' ? null : scoreFromHash(location.hash)),
+  );
+
+  const shareOverall = useCallback(
+    () => setSharing(buildScore(progress, name, pro)),
+    [progress, name, pro],
+  );
+  const shareRun = useCallback(
+    (id: LevelId, title: string, correct: number, total: number, ms: number) =>
+      setSharing(buildRunScore(buildScore(progress, name, pro), id, title, correct, total, ms)),
+    [progress, name, pro],
+  );
+
+  const dismissIncoming = useCallback(() => {
+    setIncoming(null);
+    // Drop the payload so a refresh does not re-open the challenge.
+    if (typeof history !== 'undefined') {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }, []);
 
   useEffect(() => { saveProgress(progress); }, [progress]);
 
@@ -41,6 +68,23 @@ export function App() {
     setView({ k: 'level', id });
   }, []);
 
+  if (incoming) {
+    return (
+      <SharedScoreView
+        theirs={incoming.score}
+        yours={buildScore(progress, name || 'You', pro)}
+        intact={incoming.intact}
+        hasProgress={progress.history.length > 0}
+        onStart={() => {
+          dismissIncoming();
+          const next = LEVEL_ORDER.find((id) => !levelProgress(progress, id).completed) ?? 'L0';
+          pick(next);
+        }}
+        onDismiss={dismissIncoming}
+      />
+    );
+  }
+
   const body = (() => {
     switch (view.k) {
       case 'home':
@@ -50,6 +94,7 @@ export function App() {
             onDojo={() => setView({ k: 'dojo' })}
             onLab={() => setView({ k: 'lab' })}
             onUpgrade={() => setModal(true)}
+            onShare={shareOverall}
             onReset={() => setProgress(emptyProgress())}
           />
         );
@@ -63,13 +108,20 @@ export function App() {
             timeTrend={timeTrend(progress, view.id)}
             onResult={onResult}
             onFinish={() => setProgress((p) => finishAttempt(p, view.id, level.drillCount))}
+            onShare={(c, t, ms) => shareRun(view.id, level.title, c, t, ms)}
             onExit={home}
           />
         );
       }
 
       case 'hands':
-        return <HandPlayView pro={pro} onExit={home} />;
+        return (
+          <HandPlayView
+            pro={pro}
+            onShare={(won, total) => shareRun('L8', 'Full hands', won, total, 0)}
+            onExit={home}
+          />
+        );
 
       case 'dojo':
         return (
@@ -94,6 +146,7 @@ export function App() {
                 setBossLabel(`${correct}/${total}. You need ${BOSS_PASS} to clear it. The leak stays.`);
               }
             }}
+            onShare={(c, t, ms) => shareRun('L0', view.level.title, c, t, ms)}
             onExit={() => setView({ k: 'dojo' })}
           />
         );
@@ -106,6 +159,14 @@ export function App() {
   return (
     <>
       {body}
+      {sharing && (
+        <ShareModal
+          score={sharing}
+          name={name}
+          onName={setName}
+          onClose={() => setSharing(null)}
+        />
+      )}
       {modal && (
         <UpgradeModal
           pro={pro}

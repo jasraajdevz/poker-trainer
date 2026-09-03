@@ -124,3 +124,23 @@ reverse; say the word on any of them.
     thresholds — more bluffs against someone who folds too much, fewer and bigger
     value bets against someone who calls too much — using your recorded tag
     counts as the input.
+
+## Share links
+
+35. **The score travels in the URL fragment, not a query string.** A fragment is
+    never sent to the server or written to an access log, which matters because
+    the payload carries a name someone chose.
+36. **A checksum, and an honest label for what it is.** FNV-1a over the canonical
+    payload catches a link that got mangled or hand-edited, and the recipient
+    sees a warning when it fails. It cannot stop forgery — there is no server to
+    sign anything — so the UI calls a share link a boast rather than a receipt
+    instead of implying it is verified.
+37. **Everything decoded from a link is treated as hostile.** Numbers are clamped
+    to sane ranges (an accuracy of 9999 becomes 100, 900 correct out of 3 becomes
+    3), unknown error tags are dropped so the `TAGS` lookup cannot crash, and
+    names are stripped of control characters, zero-width characters and bidi
+    overrides before rendering. Tested against NaN, Infinity, wrong types and
+    junk base64.
+38. **A tie is reported as a tie.** The first version counted only strict wins,
+    so two identical scores read as "they have you on every measure". Caught by
+    opening my own link.

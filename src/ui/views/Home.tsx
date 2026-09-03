@@ -5,9 +5,10 @@ import { activeLeaks } from '../../coach/dojo';
 import { openingPercent, openingRange, QUOTED_PERCENT } from '../../engine/preflopChart';
 import { CellMark, GridLegend, RangeGrid } from '../components/RangeGrid';
 import { UpgradeButton } from '../components/Upgrade';
+import { ShareButton } from '../components/Share';
 
 export function Home({
-  progress, pro, onPick, onDojo, onLab, onUpgrade, onReset,
+  progress, pro, onPick, onDojo, onLab, onUpgrade, onShare, onReset,
 }: {
   progress: Progress;
   pro: boolean;
@@ -15,6 +16,7 @@ export function Home({
   onDojo: () => void;
   onLab: () => void;
   onUpgrade: () => void;
+  onShare: () => void;
   onReset: () => void;
 }) {
   const leaks = activeLeaks(progress);
@@ -44,7 +46,10 @@ export function Home({
             No-Limit Hold'em · 6-max cash · 100bb. Every number it shows you, it computed.
           </p>
         </div>
-        <UpgradeButton pro={pro} onClick={onUpgrade} />
+        <div className="flex shrink-0 items-center gap-2">
+          {answered > 0 && <ShareButton onClick={onShare} label="Share score" />}
+          <UpgradeButton pro={pro} onClick={onUpgrade} />
+        </div>
       </header>
 
       {answered > 0 && (

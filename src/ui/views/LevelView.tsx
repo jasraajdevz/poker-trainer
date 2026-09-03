@@ -4,6 +4,7 @@ import { DrillResult, median } from '../../coach/progress';
 import { TAGS } from '../../coach/mistakes';
 import { CoachPanel } from '../components/CoachPanel';
 import { PokerTable } from '../components/Table';
+import { ShareButton } from '../components/Share';
 
 interface Props {
   level: LevelModule;
@@ -13,10 +14,13 @@ interface Props {
   bossLabel?: string;
   onResult: (r: DrillResult) => void;
   onFinish: (correct: number, total: number) => void;
+  onShare: (correct: number, total: number, medianMs: number) => void;
   onExit: () => void;
 }
 
-export function LevelView({ level, timeTrend, pro, bossLabel, onResult, onFinish, onExit }: Props) {
+export function LevelView({
+  level, timeTrend, pro, bossLabel, onResult, onFinish, onShare, onExit,
+}: Props) {
   const [attemptSeed, setAttemptSeed] = useState(() => `a${Date.now()}`);
   const [phase, setPhase] = useState<'lesson' | 'running' | 'summary'>('lesson');
   const [index, setIndex] = useState(0);
@@ -229,6 +233,7 @@ export function LevelView({ level, timeTrend, pro, bossLabel, onResult, onFinish
           >
             Replay with new drills
           </button>
+          <ShareButton onClick={() => onShare(right, level.drillCount, med)} label="Share this run" />
           <button className="btn-ghost" onClick={onExit}>Back to levels</button>
         </div>
       </div>
