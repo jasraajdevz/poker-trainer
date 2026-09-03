@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #0e4531 0%, #07231a 45%, #04140f 100%);
+  background-attachment: fixed;
+  color: #e7f0ec;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers should never jitter as they update. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-emerald-900/60 bg-black/35 backdrop-blur-sm;
+  }
+  .kbd {
+    @apply inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border
+           border-emerald-800/80 bg-emerald-950/70 px-1 font-mono text-[11px] text-emerald-300;
+  }
+  .btn {
+    @apply rounded-lg border px-4 py-2 text-sm font-medium transition
+           disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn border-emerald-500/60 bg-emerald-600/25 text-emerald-100
+           hover:bg-emerald-600/40;
+  }
+  .btn-ghost {
+    @apply btn border-emerald-900/70 bg-black/25 text-emerald-200/80 hover:bg-black/45;
+  }
+}
+
+/* Fast, never in the way. */
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 120ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise { animation: none; }
+}
