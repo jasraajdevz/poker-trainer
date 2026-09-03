@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
-  DEFAULT_HOURS, JOIN_BONUS, TITLES, decodeParty, encodeParty, isLive, makeParty,
-  partyFromHash, remainingMs, titleForRank, withParty,
+  DEFAULT_HOURS, JOIN_BONUS, MAX_HOURS, MAX_LEAD_DAYS, TITLES, decodeParty, describeWindow,
+  encodeParty, isLive, isOver, isPending, localMs, makeParty, msUntilNextChange,
+  nextOccurrence, partyFromHash, remainingMs, scheduleParty, startsInMs, titleForRank,
+  toDateInput, toTimeInput, withParty,
 } from '../party';
 import { decodeScore, encodeScore, SharedScore } from '../share';
 import { buildBoard, decodeBoard, encodeBoard, StoredEntry } from '../leaderboard';
@@ -24,8 +26,10 @@ describe('starting a party', () => {
   });
 
   it('clamps the duration to something sane', () => {
-    expect(makeParty('a', 'b', 0, NOW).duration).toBe(3600_000);
-    expect(makeParty('a', 'b', 9999, NOW).duration).toBe(168 * 3600_000);
+    // A minute is the floor so a quick test party stays quick; a week is the cap.
+    expect(makeParty('a', 'b', 0, NOW).duration).toBe(60_000);
+    expect(makeParty('a', 'b', 0.25, NOW).duration).toBe(15 * 60_000);
+    expect(makeParty('a', 'b', 9999, NOW).duration).toBe(MAX_HOURS * 3600_000);
   });
 });
 
@@ -92,9 +96,10 @@ describe('a party travels in a link', () => {
     })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     const out = decodeParty(evil)!;
     expect(out.name).toHaveLength(24);
-    expect(out.duration).toBeLessThanOrEqual(168 * 3600_000);
-    // Cannot be dated into next year to keep the disco running forever.
-    expect(out.at).toBeLessThanOrEqual(Date.now() + 3600_000);
+    expect(out.duration).toBeLessThanOrEqual(MAX_HOURS * 3600_000);
+    // A party may be booked ahead, but only inside a bounded window — a crafted
+    // link cannot sit dormant for a decade waiting to fire.
+    expect(out.at).toBeLessThanOrEqual(Date.now() + MAX_LEAD_DAYS * 86_400_000 + 1000);
   });
 
   it('rejects a payload with the wrong shape', () => {
@@ -170,5 +175,119 @@ describe('party fields do not break existing links', () => {
     expect(out.intact).toBe(true);
     expect(out.scores[0]!.b).toBe(300);
     expect(out.scores[0]!.g).toBe('Disco Monarch');
+  });
+});
+
+
+describe('booking a party ahead of time', () => {
+  // 5 March, midnight to 7pm, in whatever zone the test machine is in.
+  const march5 = (year: number) => new Date(year, 2, 5, 0, 0, 0, 0).getTime();
+
+  it('pins an explicit window rather than a duration from now', () => {
+    const start = march5(2027);
+    const end = start + 19 * 3600_000;
+    const p = scheduleParty('Ravi', 'Jas', start, end);
+    expect(p.at).toBe(start);
+    expect(p.duration).toBe(19 * 3600_000);
+    expect(isPending(p, start - 1000)).toBe(true);
+    expect(isLive(p, start - 1000)).toBe(false);
+    expect(isLive(p, start)).toBe(true);
+    expect(isLive(p, start + 18 * 3600_000)).toBe(true);
+    expect(isLive(p, end)).toBe(false);
+    expect(isOver(p, end)).toBe(true);
+  });
+
+  it('handles the noon-to-seven reading just as well', () => {
+    const start = march5(2027) + 12 * 3600_000;
+    const p = scheduleParty('Ravi', 'Jas', start, start + 7 * 3600_000);
+    expect(p.duration).toBe(7 * 3600_000);
+    expect(describeWindow(p)).toMatch(/2027/);
+    expect(describeWindow(p)).toMatch(/12:00\s?PM/);
+    expect(describeWindow(p)).toMatch(/7:00\s?PM/);
+    expect(describeWindow(p)).toMatch(/7h/);
+  });
+
+  it('supports an overnight window', () => {
+    const start = march5(2027) + 22 * 3600_000;
+    const p = scheduleParty('Ravi', 'Jas', start, start + 4 * 3600_000);
+    expect(p.duration).toBe(4 * 3600_000);
+    expect(describeWindow(p)).toMatch(/next day/);
+  });
+
+  it('refuses a zero or negative window, and caps a silly one', () => {
+    const start = march5(2027);
+    expect(scheduleParty('a', 'b', start, start).duration).toBe(60_000);
+    expect(scheduleParty('a', 'b', start, start - 5000).duration).toBe(60_000);
+    expect(scheduleParty('a', 'b', start, start + 999 * 3600_000).duration)
+      .toBe(MAX_HOURS * 3600_000);
+  });
+
+  it('finds the next 5 March, counting today if it is today', () => {
+    const inJan = new Date(2027, 0, 10).getTime();
+    expect(nextOccurrence(3, 5, inJan).getFullYear()).toBe(2027);
+    const inApril = new Date(2027, 3, 10).getTime();
+    expect(nextOccurrence(3, 5, inApril).getFullYear()).toBe(2028);
+    // On the day itself, it is still today's party.
+    const onTheDay = new Date(2027, 2, 5, 18, 0).getTime();
+    expect(nextOccurrence(3, 5, onTheDay).getTime()).toBe(march5(2027));
+    const d = nextOccurrence(3, 5, inJan);
+    expect(d.getMonth()).toBe(2);
+    expect(d.getDate()).toBe(5);
+    expect(d.getHours()).toBe(0);
+  });
+
+  it('round-trips the date and time inputs the form uses', () => {
+    const ms = march5(2027) + 13 * 3600_000 + 45 * 60_000;
+    expect(toDateInput(ms)).toBe('2027-03-05');
+    expect(toTimeInput(ms)).toBe('13:45');
+    expect(localMs('2027-03-05', '13:45')).toBe(ms);
+    expect(localMs('2027-03-05', '00:00')).toBe(march5(2027));
+  });
+
+  it('knows when it next needs to wake up', () => {
+    const start = march5(2027);
+    const p = scheduleParty('a', 'b', start, start + 3600_000);
+    expect(msUntilNextChange(p, start - 5000)).toBe(5000);      // until it starts
+    expect(msUntilNextChange(p, start + 1000)).toBe(3599_000);  // until it ends
+    expect(msUntilNextChange(p, start + 3600_000)).toBeNull();  // nothing left
+    expect(msUntilNextChange(null)).toBeNull();
+    expect(startsInMs(p, start - 5000)).toBe(5000);
+    expect(startsInMs(p, start + 10)).toBe(0);
+  });
+
+  it('sends the invitation before the party starts, and stops once it ends', () => {
+    const soon = Date.now() + 7 * 86_400_000;
+    const booked = scheduleParty('Ravi', 'Jas', soon, soon + 3600_000);
+    expect(withParty('https://x/y', booked)).toContain('pty=');
+    const done = scheduleParty('Ravi', 'Jas', Date.now() - 10 * 3600_000, Date.now() - 3600_000);
+    expect(withParty('https://x/y', done)).toBe('https://x/y');
+  });
+
+  it('survives the trip through a link with its future start intact', () => {
+    const start = Date.now() + 30 * 86_400_000;
+    const p = scheduleParty('Ravi', 'Jas', start, start + 19 * 3600_000);
+    const out = decodeParty(encodeParty(p))!;
+    expect(out.at).toBe(start);
+    expect(out.duration).toBe(19 * 3600_000);
+    expect(isPending(out)).toBe(true);
+    expect(partyFromHash(`#pty=${encodeParty(p)}`)!.at).toBe(start);
+  });
+
+  it('still refuses a link booked absurdly far ahead', () => {
+    const daft = Date.now() + 5000 * 86_400_000;
+    const payload = btoa(JSON.stringify({ v: 1, p: ['x', 'y', daft, 3600_000] }))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const out = decodeParty(payload)!;
+    expect(out.at).toBeLessThanOrEqual(Date.now() + MAX_LEAD_DAYS * 86_400_000 + 1000);
+  });
+
+  it('a fifteen minute test party is live immediately and gone soon after', () => {
+    const p = makeParty('Ravi', 'Jas', 0.25);
+    expect(isLive(p)).toBe(true);
+    expect(remainingMs(p)).toBeGreaterThan(14 * 60_000);
+    expect(isOver(p, Date.now() + 16 * 60_000)).toBe(true);
+    expect(DEFAULT_HOURS).toBeGreaterThan(0);
+    expect(JOIN_BONUS).toBeGreaterThan(0);
+    expect(TITLES.length).toBe(3);
   });
 });

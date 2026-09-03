@@ -18,8 +18,8 @@ import {
   Override, adminEnabled, applyOverride, loadOverride, saveOverride, setAdmin,
 } from '../coach/admin';
 import {
-  CORRECT_BONUS, DRILL_POINTS, JOIN_BONUS, Party, claimJoinBonus, isLive, loadParty,
-  loadPoints, partyFromHash, savePoints, saveParty,
+  CORRECT_BONUS, DRILL_POINTS, JOIN_BONUS, Party, claimJoinBonus, isLive, isOver,
+  loadParty, loadPoints, msUntilNextChange, partyFromHash, savePoints, saveParty,
 } from '../coach/party';
 import { discoBeat } from '../audio/discoBeat';
 import {
@@ -60,6 +60,18 @@ export function App() {
   const [party, setPartyState] = useState<Party | null>(() => loadParty());
   const [points, setPointsState] = useState(() => loadPoints());
   const pulse = useDiscoPulse();
+  // Re-render exactly when the party is due to start or finish, so a booked
+  // party lights up on its own without anybody reloading the page.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const delay = msUntilNextChange(party);
+    if (delay === null) return;
+    const id = window.setTimeout(
+      () => setTick((n) => n + 1),
+      Math.max(500, Math.min(delay + 250, 60_000)),
+    );
+    return () => window.clearTimeout(id);
+  }, [party, tick]);
   const partyOn = isLive(party);
 
   // Persist from effects, never from inside a state updater: React may invoke
@@ -80,13 +92,16 @@ export function App() {
   /** Adopt a party arriving in a link, and pay the join bonus once. */
   const takeParty = useCallback((hash: string) => {
     const found = partyFromHash(hash);
-    if (!found || !isLive(found)) return;
+    // A booked party is worth keeping too: the invite can arrive days early.
+    if (!found || isOver(found)) return;
     setPartyState((cur) => (cur && cur.at >= found.at ? cur : found));
     // Claim outside the updater. claimJoinBonus writes a ledger so the bonus is
     // paid once per party, and a StrictMode double-invoke would make the second
     // call a no-op and swallow the points.
-    const { fresh } = claimJoinBonus(found, loadPoints());
-    if (fresh) setPointsState((n) => n + JOIN_BONUS);
+    if (isLive(found)) {
+      const { fresh } = claimJoinBonus(found, loadPoints());
+      if (fresh) setPointsState((n) => n + JOIN_BONUS);
+    }
   }, []);
 
   useEffect(() => {

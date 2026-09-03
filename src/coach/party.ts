@@ -16,6 +16,10 @@ const POINTS_KEY = 'poker-trainer:bp';
 const SEEN_KEY = 'poker-trainer:party-seen';
 
 export const DEFAULT_HOURS = 24;
+/** A party cannot run longer than this. */
+export const MAX_HOURS = 168;
+/** How far ahead a party may be booked. */
+export const MAX_LEAD_DAYS = 400;
 
 /** Points, all earned by doing something. */
 export const JOIN_BONUS = 100;
@@ -39,6 +43,25 @@ export interface Party {
 export const isLive = (p: Party | null, now = Date.now()): boolean =>
   !!p && now >= p.at && now < p.at + p.duration;
 
+/** Booked, but not started yet. Invites can still go out. */
+export const isPending = (p: Party | null, now = Date.now()): boolean =>
+  !!p && now < p.at;
+
+/** Finished. Links stop carrying it. */
+export const isOver = (p: Party | null, now = Date.now()): boolean =>
+  !!p && now >= p.at + p.duration;
+
+export const startsInMs = (p: Party | null, now = Date.now()): number =>
+  p ? Math.max(0, p.at - now) : 0;
+
+/** How long until the party next changes state, for scheduling a wake-up. */
+export function msUntilNextChange(p: Party | null, now = Date.now()): number | null {
+  if (!p) return null;
+  if (now < p.at) return p.at - now;
+  if (now < p.at + p.duration) return p.at + p.duration - now;
+  return null;
+}
+
 export const remainingMs = (p: Party | null, now = Date.now()): number =>
   p ? Math.max(0, p.at + p.duration - now) : 0;
 
@@ -49,7 +72,8 @@ export function makeParty(name: string, host: string, hours = DEFAULT_HOURS, now
     name: clean(name) || 'Everybody',
     host: clean(host) || 'The owner',
     at: now,
-    duration: Math.max(1, Math.min(168, hours)) * 3600_000,
+    // A minute is the floor, so a quick test party is genuinely quick.
+    duration: Math.max(1 / 60, Math.min(MAX_HOURS, hours)) * 3600_000,
   };
 }
 
@@ -89,6 +113,61 @@ export const loadPoints = (): number => {
 
 export const savePoints = (n: number): void =>
   write(POINTS_KEY, Math.max(0, Math.min(1_000_000, Math.floor(n))));
+
+/** A party pinned to an explicit window rather than "starting now". */
+export function scheduleParty(
+  name: string, host: string, startMs: number, endMs: number,
+): Party {
+  const base = makeParty(name, host, 1, startMs);
+  const span = Math.max(60_000, Math.min(MAX_HOURS * 3600_000, endMs - startMs));
+  return { ...base, at: startMs, duration: span };
+}
+
+/**
+ * The next time a given month and day comes round, in the viewer's own zone.
+ * Month is 1-12. If today is that day, today counts.
+ */
+export function nextOccurrence(month: number, day: number, now = Date.now()): Date {
+  const d = new Date(now);
+  const candidate = new Date(d.getFullYear(), month - 1, day, 0, 0, 0, 0);
+  const endOfThatDay = candidate.getTime() + 24 * 3600_000;
+  if (now < endOfThatDay) return candidate;
+  return new Date(d.getFullYear() + 1, month - 1, day, 0, 0, 0, 0);
+}
+
+/** Combine a yyyy-mm-dd and a HH:MM into local epoch ms. */
+export function localMs(dateStr: string, timeStr: string): number {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [hh, mm] = timeStr.split(':').map(Number);
+  if (!y || !m || !d) return Date.now();
+  return new Date(y, m - 1, d, hh ?? 0, mm ?? 0, 0, 0).getTime();
+}
+
+export const toDateInput = (ms: number): string => {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+export const toTimeInput = (ms: number): string => {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+/** "Fri 5 Mar 2027, 12:00 AM to 7:00 PM (19h)" — no room for ambiguity. */
+export function describeWindow(p: Party): string {
+  const start = new Date(p.at);
+  const end = new Date(p.at + p.duration);
+  const day = start.toLocaleDateString(undefined, {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+  });
+  const t = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const hours = p.duration / 3600_000;
+  const span = hours >= 1 ? `${Number(hours.toFixed(1))}h` : `${Math.round(p.duration / 60_000)}m`;
+  const sameDay = start.toDateString() === end.toDateString();
+  return `${day}, ${t(start)} to ${t(end)}${sameDay ? '' : ' (next day)'} · ${span}`;
+}
 
 /** Party ids already joined, so the join bonus is paid exactly once each. */
 const seen = (): number[] => {
@@ -160,11 +239,14 @@ export function decodeParty(payload: string): Party | null {
     const [name, host, at, duration] = raw.p as [unknown, unknown, unknown, unknown];
     if (typeof at !== 'number' || !Number.isFinite(at)) return null;
     if (typeof duration !== 'number' || !Number.isFinite(duration)) return null;
-    return makeParty(
+    // A party may be booked ahead, so a future start is legitimate — but only
+    // within a bounded window, or a crafted link could sit dormant for years.
+    const startAt = Math.max(0, Math.min(Date.now() + MAX_LEAD_DAYS * 86_400_000, at));
+    return scheduleParty(
       typeof name === 'string' ? name : '',
       typeof host === 'string' ? host : '',
-      Math.max(1, Math.min(168, duration / 3600_000)),
-      Math.max(0, Math.min(Date.now() + 3600_000, at)),
+      startAt,
+      startAt + Math.max(60_000, Math.min(MAX_HOURS * 3600_000, duration)),
     );
   } catch {
     return null;
@@ -176,8 +258,11 @@ export function partyFromHash(hash: string): Party | null {
   return m ? decodeParty(m[1]!) : null;
 }
 
-/** Append the party to any link that is going out while one is running. */
+/**
+ * Append the party to an outgoing link. A booked-but-not-started party still
+ * travels, so invitations can go out in advance; a finished one does not.
+ */
 export function withParty(url: string, p: Party | null): string {
-  if (!isLive(p)) return url;
-  return `${url}${url.includes('#') ? '&' : '#'}pty=${encodeParty(p!)}`;
+  if (!p || isOver(p)) return url;
+  return `${url}${url.includes('#') ? '&' : '#'}pty=${encodeParty(p)}`;
 }

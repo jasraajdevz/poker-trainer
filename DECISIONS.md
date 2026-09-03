@@ -230,3 +230,25 @@ reverse; say the word on any of them.
     effect keyed on the value.
 61. **Everything animated respects `prefers-reduced-motion`.** Loud is a choice;
     motion sickness is not.
+
+## Scheduling a party
+
+62. **A scheduled party is just a party with a future start.** `isLive` already
+    compared against a window, so booking ahead needed no new concept — only the
+    relaxation of a clamp that had assumed every party begins now.
+63. **The app wakes itself at the transition.** A timeout is armed for the exact
+    moment the party starts or ends, re-armed at most every 60 seconds, so a
+    booked party lights up and shuts down on an open tab with nobody present.
+    Verified live: disco off at seven seconds before, on one second after.
+64. **A booked party still travels in links.** Invitations go out weeks early;
+    only a finished party stops being attached.
+65. **The window is stated in full, never inferred.** "Fri, Mar 5, 2027, 12:00 AM
+    to 7:00 PM · 19h" removes the 12 AM / 12 PM ambiguity that prompted this,
+    and both readings are one preset button apart.
+66. **Times are local, and the instant is absolute.** The owner picks hours in
+    their own zone; everyone joins the same moment, seen in theirs.
+67. **A crafted link still cannot sleep for a decade.** Booking ahead is bounded
+    to 400 days, so relaxing the clamp did not reopen the dormant-confetti hole.
+68. **The minimum party is one minute, not one hour.** `makeParty` clamped hours
+    to a floor of 1, which would have made the fifteen-minute test button run for
+    an hour. Caught by a test asserting the test party expires.

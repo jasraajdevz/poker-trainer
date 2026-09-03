@@ -12,7 +12,8 @@ import {
   BIRTHDAY_COLUMN,
 } from '../../coach/leaderboard';
 import {
-  DEFAULT_HOURS, Party, TITLES, isLive, makeParty, titleForRank, withParty,
+  Party, TITLES, describeWindow, isLive, isPending, localMs, makeParty, nextOccurrence,
+  scheduleParty, startsInMs, titleForRank, toDateInput, withParty,
 } from '../../coach/party';
 
 const time = (ms: number) => (ms > 0 ? `${(ms / 1000).toFixed(1)}s` : '—');
@@ -34,6 +35,11 @@ export function LeaderboardView({
   const [sort, setSort] = useState<SortKey>('levels');
   const [editing, setEditing] = useState<string | null>(null);
   const [bdayName, setBdayName] = useState('');
+  // Defaults to the next 5 March, midnight to 7pm — the window the owner asked
+  // for. Every part of it is editable and the resolved date is spelled out.
+  const [bdayDate, setBdayDate] = useState(() => toDateInput(nextOccurrence(3, 5).getTime()));
+  const [bdayFrom, setBdayFrom] = useState('00:00');
+  const [bdayTo, setBdayTo] = useState('19:00');
   const [phantom, setPhantom] = useState('');
   const [titleTarget, setTitleTarget] = useState('');
   const [titleText, setTitleText] = useState('');
@@ -169,11 +175,11 @@ export function LeaderboardView({
             </div>
           </div>
 
-          {/* ---- The big red button ---------------------------------------- */}
+          {/* ---- The party desk -------------------------------------------- */}
           <div className="mt-3 rounded-xl border border-fuchsia-400/40 bg-gradient-to-r
                           from-fuchsia-900/40 via-indigo-900/30 to-rose-900/40 p-3">
             <div className="flex flex-wrap items-end gap-2">
-              <label className="min-w-0 flex-1">
+              <label className="min-w-[10rem] flex-1">
                 <span className="mb-1 block text-[10px] uppercase tracking-widest text-fuchsia-200/70">
                   Whose birthday is it?
                 </span>
@@ -186,27 +192,109 @@ export function LeaderboardView({
                              text-sm text-emerald-50 outline-none focus:border-fuchsia-300"
                 />
               </label>
-              {partyOn ? (
+              <button
+                onClick={() => onParty(makeParty(bdayName, me.n, 0.25))}
+                className="btn animate-pulse border-fuchsia-300/60 bg-fuchsia-500/30 px-4 py-2
+                           text-sm font-bold text-fuchsia-50 hover:bg-fuchsia-500/45"
+              >
+                🪩 TEST IT NOW
+              </button>
+              {party && (
                 <button
                   onClick={() => onParty(null)}
-                  className="btn border-white/25 bg-black/40 px-4 py-2 text-xs text-white/80 hover:bg-black/60"
+                  className="btn border-white/25 bg-black/40 px-3 py-2 text-xs text-white/80 hover:bg-black/60"
                 >
-                  End the party
-                </button>
-              ) : (
-                <button
-                  onClick={() => onParty(makeParty(bdayName, me.n, DEFAULT_HOURS))}
-                  className="btn animate-pulse border-fuchsia-300/60 bg-fuchsia-500/30 px-4 py-2
-                             text-sm font-bold text-fuchsia-50 hover:bg-fuchsia-500/45"
-                >
-                  🪩 START THE PARTY
+                  {partyOn ? 'End it' : 'Cancel'}
                 </button>
               )}
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-fuchsia-100/50">
-              {partyOn
-                ? `Party is live for ${party!.name}. Every link you share from now on carries it — whoever opens one drops into the disco and starts earning birthday points.`
-                : `Turns the whole app into a disco for ${DEFAULT_HOURS} hours, here and for anyone who opens a link you share while it runs. Top birthday points gets ${TITLES[0]!.emoji} ${TITLES[0]!.label}.`}
+
+            <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-fuchsia-400/20 pt-3">
+              <label>
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-fuchsia-200/70">
+                  Date
+                </span>
+                <input
+                  type="date"
+                  value={bdayDate}
+                  onChange={(ev) => setBdayDate(ev.target.value)}
+                  className="rounded-md border border-fuchsia-400/30 bg-black/50 px-2 py-1.5
+                             text-sm text-emerald-50 outline-none focus:border-fuchsia-300"
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-fuchsia-200/70">
+                  From
+                </span>
+                <input
+                  type="time"
+                  value={bdayFrom}
+                  onChange={(ev) => setBdayFrom(ev.target.value)}
+                  className="rounded-md border border-fuchsia-400/30 bg-black/50 px-2 py-1.5
+                             text-sm text-emerald-50 outline-none focus:border-fuchsia-300"
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-fuchsia-200/70">
+                  Until
+                </span>
+                <input
+                  type="time"
+                  value={bdayTo}
+                  onChange={(ev) => setBdayTo(ev.target.value)}
+                  className="rounded-md border border-fuchsia-400/30 bg-black/50 px-2 py-1.5
+                             text-sm text-emerald-50 outline-none focus:border-fuchsia-300"
+                />
+              </label>
+              <button
+                onClick={() => {
+                  const start = localMs(bdayDate, bdayFrom);
+                  let end = localMs(bdayDate, bdayTo);
+                  if (end <= start) end += 24 * 3600_000; // an overnight party
+                  onParty(scheduleParty(bdayName, me.n, start, end));
+                }}
+                className="btn border-fuchsia-300/50 bg-fuchsia-500/20 px-3 py-2 text-xs
+                           font-semibold text-fuchsia-50 hover:bg-fuchsia-500/35"
+              >
+                Schedule it
+              </button>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => { setBdayFrom('00:00'); setBdayTo('19:00'); }}
+                  className="btn-ghost px-2 py-1.5 text-[11px]"
+                  title="Midnight to 7pm"
+                >
+                  12 AM–7 PM
+                </button>
+                <button
+                  onClick={() => { setBdayFrom('12:00'); setBdayTo('19:00'); }}
+                  className="btn-ghost px-2 py-1.5 text-[11px]"
+                  title="Noon to 7pm"
+                >
+                  12 PM–7 PM
+                </button>
+              </div>
+            </div>
+
+            <p className="mt-2 text-[11px] leading-relaxed text-fuchsia-100/60">
+              {partyOn && party ? (
+                <>
+                  <b className="text-fuchsia-200">Live now</b> for {party.name} — {describeWindow(party)}.
+                  Every link you share carries it.
+                </>
+              ) : isPending(party) && party ? (
+                <>
+                  <b className="text-fuchsia-200">Booked</b> for {party.name} — {describeWindow(party)}.
+                  Starts on its own in {formatCountdown(startsInMs(party))}, no need to be here.
+                  Links you send now already carry the invitation.
+                </>
+              ) : (
+                <>
+                  Test it now for 15 minutes, or book the window above. Whoever opens a link you share
+                  drops into the disco; top birthday points takes {TITLES[0]!.emoji} {TITLES[0]!.label}.
+                  Times are in your own timezone.
+                </>
+              )}
             </p>
           </div>
 
@@ -525,6 +613,15 @@ function Row({
       </td>
     </tr>
   );
+}
+
+function formatCountdown(ms: number): string {
+  const days = Math.floor(ms / 86_400_000);
+  const hours = Math.floor((ms % 86_400_000) / 3600_000);
+  const mins = Math.floor((ms % 3600_000) / 60_000);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
 }
 
 function ordinal(n: number): string {
