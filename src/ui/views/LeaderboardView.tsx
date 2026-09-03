@@ -35,10 +35,10 @@ export function LeaderboardView({
   const [sort, setSort] = useState<SortKey>('levels');
   const [editing, setEditing] = useState<string | null>(null);
   const [bdayName, setBdayName] = useState('');
-  // Defaults to the next 5 March, midnight to 7pm — the window the owner asked
-  // for. Every part of it is editable and the resolved date is spelled out.
+  // Defaults to the next 5 March, noon to 7pm — the window the owner settled on.
+  // Every part of it is editable and the resolved date is spelled out in full.
   const [bdayDate, setBdayDate] = useState(() => toDateInput(nextOccurrence(3, 5).getTime()));
-  const [bdayFrom, setBdayFrom] = useState('00:00');
+  const [bdayFrom, setBdayFrom] = useState('12:00');
   const [bdayTo, setBdayTo] = useState('19:00');
   const [phantom, setPhantom] = useState('');
   const [titleTarget, setTitleTarget] = useState('');
@@ -260,18 +260,18 @@ export function LeaderboardView({
               </button>
               <div className="flex gap-1">
                 <button
-                  onClick={() => { setBdayFrom('00:00'); setBdayTo('19:00'); }}
-                  className="btn-ghost px-2 py-1.5 text-[11px]"
-                  title="Midnight to 7pm"
-                >
-                  12 AM–7 PM
-                </button>
-                <button
                   onClick={() => { setBdayFrom('12:00'); setBdayTo('19:00'); }}
                   className="btn-ghost px-2 py-1.5 text-[11px]"
                   title="Noon to 7pm"
                 >
                   12 PM–7 PM
+                </button>
+                <button
+                  onClick={() => { setBdayFrom('00:00'); setBdayTo('19:00'); }}
+                  className="btn-ghost px-2 py-1.5 text-[11px]"
+                  title="Midnight to 7pm"
+                >
+                  12 AM–7 PM
                 </button>
               </div>
             </div>

@@ -97,11 +97,12 @@ reads your logged leaks, and the Lab.
 The party desk in the admin panel. **TEST IT NOW** runs a 15-minute party
 immediately. **Schedule it** books a window — date, from, until — and the party
 starts and ends on its own, with no need for anyone to be at the keyboard. Two
-presets sit beside it for 12 AM–7 PM and 12 PM–7 PM.
+presets sit beside it for 12 PM–7 PM and 12 AM–7 PM.
 
-The booked window is spelled out in full ("Fri, Mar 5, 2027, 12:00 AM to 7:00 PM
-· 19h") so there is nothing to misread, and a booked party still travels in
-links, so invitations can go out weeks early.
+It is pre-filled with the next 5 March, noon to 7 PM. The booked window is
+spelled out in full ("Fri, Mar 5, 2027, 12:00 PM to 7:00 PM · 7h") so there is
+nothing to misread, and a booked party still travels in links, so invitations
+can go out weeks early.
 
 Either way the whole app turns into a disco: a rainbow
 HAPPY BIRTHDAY marquee in its own strip, falling confetti, sweeping spotlights,

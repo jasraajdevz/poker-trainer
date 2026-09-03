@@ -242,9 +242,10 @@ reverse; say the word on any of them.
     Verified live: disco off at seven seconds before, on one second after.
 64. **A booked party still travels in links.** Invitations go out weeks early;
     only a finished party stops being attached.
-65. **The window is stated in full, never inferred.** "Fri, Mar 5, 2027, 12:00 AM
-    to 7:00 PM · 19h" removes the 12 AM / 12 PM ambiguity that prompted this,
-    and both readings are one preset button apart.
+65. **The window is stated in full, never inferred.** "Fri, Mar 5, 2027, 12:00 PM
+    to 7:00 PM · 7h" removes the 12 AM / 12 PM ambiguity that prompted this, and
+    both readings are one preset button apart. The owner settled on noon, so that
+    is the default; the midnight preset remains beside it.
 66. **Times are local, and the instant is absolute.** The owner picks hours in
     their own zone; everyone joins the same moment, seen in theirs.
 67. **A crafted link still cannot sleep for a decade.** Booking ahead is bounded
