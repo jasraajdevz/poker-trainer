@@ -2,20 +2,29 @@ import { useMemo, useState } from 'react';
 import { SharedScore, decodeScore, scoreFromHash } from '../../coach/share';
 import {
   COLUMNS, Entry, MAX_ENTRIES, RANKED_MIN_DRILLS, SortKey, StoredEntry,
-  boardFromHash, boardUrl, buildBoard, decodeBoard, leakLabel, mergeEntry, mergeMany, removeEntry,
+  boardFromHash, boardUrl, buildBoard, decodeBoard, leakLabel, mergeEntry, mergeMany,
+  removeEntry, updateEntry,
 } from '../../coach/leaderboard';
+import {
+  FIELDS, Override, beatTheBoard, isOverridden, sanitiseField,
+} from '../../coach/admin';
 
 const time = (ms: number) => (ms > 0 ? `${(ms / 1000).toFixed(1)}s` : '—');
 
 export function LeaderboardView({
-  roster, me, onRoster, onExit,
+  roster, me, admin, override, onRoster, onOverride, onExit,
 }: {
   roster: StoredEntry[];
   me: SharedScore;
+  /** Owner mode: every row becomes editable. */
+  admin: boolean;
+  override: Override | null;
   onRoster: (next: StoredEntry[]) => void;
+  onOverride: (next: Override | null) => void;
   onExit: () => void;
 }) {
   const [sort, setSort] = useState<SortKey>('levels');
+  const [editing, setEditing] = useState<string | null>(null);
   const [paste, setPaste] = useState('');
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -70,6 +79,13 @@ export function LeaderboardView({
   const ranked = board.filter((e) => !e.provisional);
   const myRank = ranked.findIndex((e) => e.isMe) + 1;
 
+  /** Write one edited field. Mine becomes an override; theirs rewrites the roster. */
+  const editField = (entry: Entry, key: string, raw: string) => {
+    const value = sanitiseField(key as never, raw);
+    if (entry.isMe) onOverride({ ...(override ?? {}), [key]: value });
+    else onRoster(updateEntry(roster, entry.score.n, { [key]: value }));
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-10">
       <button onClick={onExit} className="mb-6 text-xs text-emerald-300/60 hover:text-emerald-200">
@@ -83,6 +99,40 @@ export function LeaderboardView({
             ? `${board.length} players. You are ${ordinal(myRank)} of ${ranked.length} ranked, by ${COLUMNS.find((c) => c.key === sort)!.label.toLowerCase()}.`
             : `${board.length} players. Answer ${RANKED_MIN_DRILLS} drills to be ranked.`}
       </p>
+
+      {admin && (
+        <div className="panel mt-5 border-rose-500/40 bg-rose-950/20 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-rose-300">
+                admin
+              </span>
+              <span className="text-sm text-emerald-100">Every row is editable.</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => onOverride(beatTheBoard(board.filter((e) => !e.isMe).map((e) => e.score), me))}
+                className="btn border-rose-400/50 bg-rose-500/15 px-3 py-1.5 text-xs text-rose-100 hover:bg-rose-500/25"
+              >
+                Make me #1
+              </button>
+              {isOverridden(override) && (
+                <button onClick={() => onOverride(null)} className="btn-ghost px-3 py-1.5 text-xs">
+                  Reset my score
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-emerald-200/45">
+            Nothing here leaves this browser until you share a link — then edited numbers travel like
+            any others, with a valid checksum, because you generated them rather than tampering with
+            someone else's. Recipients are still told a link is a boast, not a receipt.
+            {isOverridden(override) && (
+              <b className="ml-1 text-rose-200">Your score is currently overridden.</b>
+            )}
+          </p>
+        </div>
+      )}
 
       <div className="panel mt-6 overflow-x-auto">
         <table className="w-full text-sm">
@@ -104,20 +154,56 @@ export function LeaderboardView({
                 </th>
               ))}
               <th className="px-3 py-2 text-left font-medium">Worst leak</th>
-              <th className="w-8" />
+              <th className={admin ? 'w-16' : 'w-8'} />
             </tr>
           </thead>
           <tbody className="divide-y divide-emerald-900/40">
-            {board.map((e, i) => (
-              <Row
-                key={`${e.score.n}-${i}`}
-                entry={e}
-                rank={e.provisional ? null : board.filter((x) => !x.provisional).indexOf(e) + 1}
-                onRemove={
-                  e.isMe ? undefined : () => onRoster(removeEntry(roster, e.score.n))
-                }
-              />
-            ))}
+            {board.map((e, i) => {
+              // Key on the player, not the position: editing a field re-sorts
+              // the table, and a positional key would slam the editor shut.
+              const key = e.score.n;
+              const open = editing === key;
+              return [
+                <Row
+                  key={`${key}-${i}`}
+                  entry={e}
+                  rank={e.provisional ? null : board.filter((x) => !x.provisional).indexOf(e) + 1}
+                  admin={admin}
+                  editing={open}
+                  overridden={e.isMe && isOverridden(override)}
+                  onEdit={() => setEditing(open ? null : key)}
+                  onRemove={e.isMe ? undefined : () => onRoster(removeEntry(roster, e.score.n))}
+                />,
+                open ? (
+                  <tr key={`${key}-${i}-edit`} className="bg-rose-950/25">
+                    <td colSpan={9} className="px-3 py-3">
+                      <div className="flex flex-wrap items-end gap-3">
+                        {FIELDS.map((f) => (
+                          <label key={f.key} className="block">
+                            <span className="mb-1 block text-[10px] uppercase tracking-widest text-rose-200/60">
+                              {f.label}{f.unit ? ` (${f.unit})` : ''}
+                            </span>
+                            <input
+                              type="number"
+                              min={f.min}
+                              max={f.max}
+                              step={f.step}
+                              defaultValue={String(e.score[f.key as 'l'])}
+                              onChange={(ev) => editField(e, f.key, ev.target.value)}
+                              className="tnum w-24 rounded-md border border-rose-500/30 bg-black/50 px-2 py-1
+                                         text-sm text-emerald-50 outline-none focus:border-rose-400"
+                            />
+                          </label>
+                        ))}
+                        <button onClick={() => setEditing(null)} className="btn-ghost px-3 py-1.5 text-xs">
+                          Done
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null,
+              ];
+            })}
           </tbody>
         </table>
       </div>
@@ -182,16 +268,20 @@ export function LeaderboardView({
 }
 
 function Row({
-  entry, rank, onRemove,
+  entry, rank, admin, editing, overridden, onEdit, onRemove,
 }: {
   entry: Entry;
   rank: number | null;
+  admin: boolean;
+  editing: boolean;
+  overridden: boolean;
+  onEdit: () => void;
   onRemove?: () => void;
 }) {
   const s = entry.score;
   const medal = rank === 1 ? 'text-amber-300' : rank === 2 ? 'text-zinc-300' : rank === 3 ? 'text-orange-400' : '';
   return (
-    <tr className={entry.isMe ? 'bg-emerald-500/10' : ''}>
+    <tr className={editing ? 'bg-rose-950/25' : entry.isMe ? 'bg-emerald-500/10' : ''}>
       <td className={`px-3 py-2.5 font-bold tnum ${medal || 'text-emerald-200/40'}`}>
         {rank ?? '–'}
       </td>
@@ -210,6 +300,14 @@ function Row({
         {entry.provisional && (
           <span className="ml-1.5 text-[10px] uppercase tracking-wide text-emerald-200/35">provisional</span>
         )}
+        {overridden && (
+          <span
+            title="Overridden in admin mode — this is not your real score"
+            className="ml-1.5 text-[10px] font-bold uppercase tracking-widest text-rose-400"
+          >
+            edited
+          </span>
+        )}
       </td>
       <td className="tnum px-3 py-2.5 text-right text-emerald-100">{s.l}<span className="text-emerald-200/30">/9</span></td>
       <td className="tnum px-3 py-2.5 text-right text-emerald-100">{s.a}%</td>
@@ -217,7 +315,16 @@ function Row({
       <td className="tnum px-3 py-2.5 text-right text-emerald-200/70">{s.d}</td>
       <td className="tnum px-3 py-2.5 text-right text-emerald-200/70">{time(s.t)}</td>
       <td className="max-w-[10rem] truncate px-3 py-2.5 text-xs text-rose-200/80">{leakLabel(s.k)}</td>
-      <td className="px-2 py-2.5 text-right">
+      <td className="whitespace-nowrap px-2 py-2.5 text-right">
+        {admin && (
+          <button
+            onClick={onEdit}
+            title="Edit this row"
+            className={`mr-1 transition ${editing ? 'text-rose-300' : 'text-emerald-200/25 hover:text-rose-300'}`}
+          >
+            ✎
+          </button>
+        )}
         {onRemove && (
           <button
             onClick={onRemove}

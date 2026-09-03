@@ -110,6 +110,15 @@ export function mergeMany(
   return scores.reduce((acc, s) => mergeEntry(acc, s, intact, at), roster);
 }
 
+/** Rewrite one row in place. Used by the owner's admin panel. */
+export function updateEntry(
+  roster: StoredEntry[], name: string, patch: Partial<SharedScore>,
+): StoredEntry[] {
+  const id = cleanName(name).toLowerCase();
+  return roster.map((e) =>
+    idOf(e.s) === id ? { ...e, s: { ...e.s, ...patch } } : e);
+}
+
 export function removeEntry(roster: StoredEntry[], name: string): StoredEntry[] {
   const id = cleanName(name).toLowerCase();
   return roster.filter((e) => idOf(e.s) !== id);

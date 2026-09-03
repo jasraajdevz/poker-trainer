@@ -14,6 +14,9 @@ import {
 import {
   StoredEntry, boardFromHash, loadRoster, mergeEntry, mergeMany, saveRoster,
 } from '../coach/leaderboard';
+import {
+  Override, adminEnabled, applyOverride, loadOverride, saveOverride, setAdmin,
+} from '../coach/admin';
 import { Home } from './views/Home';
 import { LevelView } from './views/LevelView';
 import { DojoView } from './views/DojoView';
@@ -44,10 +47,21 @@ export function App() {
     () => (typeof location === 'undefined' ? null : scoreFromHash(location.hash)),
   );
   const [roster, setRoster] = useState<StoredEntry[]>(() => loadRoster());
+  const [admin, setAdminOn] = useState(() => adminEnabled());
+  const [override, setOverrideState] = useState<Override | null>(() => loadOverride());
 
   useEffect(() => { saveRoster(roster); }, [roster]);
 
-  const me = useMemo(() => buildScore(progress, name || 'You', pro), [progress, name, pro]);
+  const setOverride = useCallback((next: Override | null) => {
+    setOverrideState(next);
+    saveOverride(next);
+  }, []);
+
+  // The score everything else uses. In admin mode an override sits on top of it.
+  const me = useMemo(
+    () => applyOverride(buildScore(progress, name || 'You', pro), admin ? override : null),
+    [progress, name, pro, admin, override],
+  );
 
   const updateRoster = useCallback((next: StoredEntry[]) => setRoster(next), []);
 
@@ -201,7 +215,15 @@ export function App() {
 
       case 'board':
         return (
-          <LeaderboardView roster={roster} me={me} onRoster={updateRoster} onExit={home} />
+          <LeaderboardView
+            roster={roster}
+            me={me}
+            admin={admin}
+            override={override}
+            onRoster={updateRoster}
+            onOverride={setOverride}
+            onExit={home}
+          />
         );
 
       case 'lab':
@@ -225,7 +247,16 @@ export function App() {
           pro={pro}
           onClose={() => setModal(false)}
           onActivate={() => { setPro(true); }}
-          onDeactivate={() => { deactivate(); setPro(false); setModal(false); home(); }}
+          onAdmin={setAdminOn}
+          onDeactivate={() => {
+            // Losing the code closes the back door with it.
+            deactivate();
+            setAdmin(false);
+            setAdminOn(false);
+            setPro(false);
+            setModal(false);
+            home();
+          }}
         />
       )}
       {view.k !== 'home' && (
@@ -238,7 +269,7 @@ export function App() {
               : 'border-amber-400/30 bg-black/40 text-amber-200/60 hover:text-amber-100'
           }`}
         >
-          {pro ? '★ Omega' : 'Upgraded mode'}
+          {pro ? (admin ? '★ Omega · admin' : '★ Omega') : 'Upgraded mode'}
         </button>
       )}
     </>

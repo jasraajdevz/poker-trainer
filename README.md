@@ -12,7 +12,7 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 267 tests
+npm test        # 282 tests
 npm run build   # production bundle
 npm run deploy  # publish to GitHub Pages
 ```
@@ -91,6 +91,22 @@ rather than security: a short code is brute-forceable by anyone determined.
 Without the code everything above still works and every number is still real. With it: 250k-sample equity and exact enumeration up
 to 3M leaves, the full leak leaderboard, Boss Fights, the Nemesis opponent that
 reads your logged leaks, and the Lab.
+
+### Admin mode
+
+Toggle inside the Omega panel. Every leaderboard row becomes editable, plus a
+**Make me #1** button that edges past whoever is currently leading on each
+measure rather than maxing out, because 7/9 and 86% is far more convincing than
+a flawless run.
+
+Your own edit is stored as an override and rides along in every link you share
+afterwards. Your row shows an **edited** badge — locally, to you only, so you
+remember which numbers are real. Turning off the code turns off admin with it.
+
+This is not a new power. A score has always lived in the URL fragment in plain
+sight and anyone with a console can rewrite one, which is exactly why the app
+has always told recipients that a link is a boast, not a receipt. Admin mode is
+the comfortable version of a thing the format never protected against.
 
 ## Keyboard
 

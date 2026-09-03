@@ -171,3 +171,30 @@ reverse; say the word on any of them.
 45. **Board links are re-validated row by row.** Same treatment as share links:
     clamped numbers, unknown tags dropped, names stripped of hidden characters,
     non-array rows discarded rather than trusted.
+
+## Admin mode
+
+46. **Admin is gated on the same code as Omega, and dies with it.** Deactivating
+    the code turns admin off and leaves the override behind unused, so the back
+    door cannot outlive the key.
+47. **It grants no new power, and the app already said so.** A score lives in the
+    URL fragment in plain sight; anyone with a console can rewrite one. Because
+    share links were labelled from day one as "a boast, not a receipt" and are
+    never presented as verified, a comfortable editor does not make the app lie
+    to anyone — it makes an existing capability pleasant.
+48. **The checksum still validates on an admin-edited link, correctly.** The
+    checksum has only ever meant "this arrived as it was sent", not "these
+    numbers are true". An owner-generated link is genuinely intact, so flagging
+    it would be the dishonest choice.
+49. **Edits are local until shared, and the panel says it.** Nothing propagates
+    without the owner pressing copy.
+50. **"Make me #1" edges past the leader instead of maxing out.** One level and
+    two accuracy points clear of whoever is top reads as a good week; nine levels
+    at 100% with a 0.4s median reads as a cheat. Plausibility is the feature.
+51. **The owner's own row carries an "edited" badge, visible only to them.** It
+    is derived from local override state, so it never travels in a link. The
+    point is that the owner does not lose track of which of their own numbers
+    are real.
+52. **Edited values go through the same clamps as everything else**, so a hand-
+    edited localStorage entry cannot put the board into a state the UI cannot
+    render.

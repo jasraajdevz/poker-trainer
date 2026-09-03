@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FEATURES, OWNER_NOTE, activate } from '../../coach/pro';
+import { adminEnabled, setAdmin } from '../../coach/admin';
 
 export function UpgradeButton({ pro, onClick }: { pro: boolean; onClick: () => void }) {
   return (
@@ -22,15 +23,17 @@ export function UpgradeButton({ pro, onClick }: { pro: boolean; onClick: () => v
 }
 
 export function UpgradeModal({
-  pro, onClose, onActivate, onDeactivate,
+  pro, onClose, onActivate, onDeactivate, onAdmin,
 }: {
   pro: boolean;
   onClose: () => void;
   onActivate: () => void;
   onDeactivate: () => void;
+  onAdmin: (on: boolean) => void;
 }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
+  const [admin, setAdminState] = useState(() => adminEnabled());
 
   const tryCode = () => {
     if (activate(code)) { setError(false); onActivate(); }
@@ -93,6 +96,44 @@ export function UpgradeModal({
             </tbody>
           </table>
         </div>
+
+        {pro && (
+          <div className="border-t border-amber-400/20 bg-gradient-to-r from-rose-950/40 to-black/40 px-6 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-rose-200">Admin mode</span>
+                  <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-rose-300">
+                    owner
+                  </span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-emerald-200/55">
+                  Rewrite any row on your leaderboard, your own included. Edits are local until you
+                  share a link — then they travel like any other score.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !admin;
+                  setAdminState(next);
+                  setAdmin(next);
+                  onAdmin(next);
+                }}
+                className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                  admin ? 'bg-rose-500/70' : 'bg-emerald-950 ring-1 ring-emerald-800'
+                }`}
+                aria-pressed={admin}
+                aria-label="Toggle admin mode"
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-zinc-100 transition-all ${
+                    admin ? 'left-[1.375rem]' : 'left-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        )}
 
         <footer className="border-t border-amber-400/20 bg-black/40 px-6 py-4">
           {pro ? (
