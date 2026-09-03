@@ -2,6 +2,8 @@
 
 No-Limit Hold'em, 6-max cash, 100bb. A coach, not a poker game.
 
+**Play it: https://jasraajdevz.github.io/poker-trainer/**
+
 ```bash
 npm install
 npm run dev
@@ -10,8 +12,9 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 233 tests
+npm test        # 236 tests
 npm run build   # production bundle
+npm run deploy  # publish to GitHub Pages
 ```
 
 ## The rule
@@ -50,8 +53,12 @@ only leaves the queue after a clean answer at every interval.
 
 ## Upgraded mode
 
-The gold button, top right. Without the code everything above still works and
-every number is still real. With it: 250k-sample equity and exact enumeration up
+The gold button, top right. The code is not in this repository — the test that
+asserts it lives in a gitignored file, so the source shows the mechanism without
+handing over the key. It is an FNV-1a hash comparison, which is obfuscation
+rather than security: a short code is brute-forceable by anyone determined.
+
+Without the code everything above still works and every number is still real. With it: 250k-sample equity and exact enumeration up
 to 3M leaves, the full leak leaderboard, Boss Fights, the Nemesis opponent that
 reads your logged leaks, and the Lab.
 

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "GITHUB_PAGES=1 vite build && touch dist/.nojekyll && rm -rf .pages && cp -r dist .pages && cd .pages && git init -q -b gh-pages && git add -A && git commit -qm Deploy && git push -qf https://github.com/jasraajdevz/poker-trainer.git gh-pages && cd .. && rm -rf .pages"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -5,3 +5,4 @@ dist
 
 # The owner code lives here and must never be published.
 *.local.test.ts
+.pages
