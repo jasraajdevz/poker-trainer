@@ -8,29 +8,56 @@ import {
 import {
   FIELDS, Override, beatTheBoard, isOverridden, sanitiseField,
 } from '../../coach/admin';
+import {
+  BIRTHDAY_COLUMN,
+} from '../../coach/leaderboard';
+import {
+  DEFAULT_HOURS, Party, TITLES, isLive, makeParty, titleForRank, withParty,
+} from '../../coach/party';
 
 const time = (ms: number) => (ms > 0 ? `${(ms / 1000).toFixed(1)}s` : '—');
 
 export function LeaderboardView({
-  roster, me, admin, override, onRoster, onOverride, onExit,
+  roster, me, admin, override, party, onRoster, onOverride, onParty, onExit,
 }: {
   roster: StoredEntry[];
   me: SharedScore;
   /** Owner mode: every row becomes editable. */
   admin: boolean;
   override: Override | null;
+  party: Party | null;
   onRoster: (next: StoredEntry[]) => void;
   onOverride: (next: Override | null) => void;
+  onParty: (p: Party | null) => void;
   onExit: () => void;
 }) {
   const [sort, setSort] = useState<SortKey>('levels');
   const [editing, setEditing] = useState<string | null>(null);
+  const [bdayName, setBdayName] = useState('');
+  const [phantom, setPhantom] = useState('');
+  const [titleTarget, setTitleTarget] = useState('');
+  const [titleText, setTitleText] = useState('');
   const [paste, setPaste] = useState('');
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const partyOn = isLive(party);
+  const anyPoints = partyOn || roster.some((e) => (e.s.b ?? 0) > 0) || (me.b ?? 0) > 0;
+  const columns = anyPoints ? [...COLUMNS, BIRTHDAY_COLUMN] : COLUMNS;
+
   const board = useMemo(() => buildBoard(roster, me, sort), [roster, me, sort]);
-  const url = useMemo(() => boardUrl(board.map((e) => e.score)), [board]);
+
+  /** Who is winning the party, for the crown. */
+  const bpRank = useMemo(() => {
+    const order = [...board]
+      .filter((e) => (e.score.b ?? 0) > 0)
+      .sort((a, b) => (b.score.b ?? 0) - (a.score.b ?? 0));
+    return new Map(order.map((e, i) => [e.score.n, i]));
+  }, [board]);
+  const url = useMemo(
+    () => withParty(boardUrl(board.map((e) => e.score)), party),
+    [board, party],
+  );
 
   /** Accepts a full URL or a bare payload, of either kind. */
   const add = () => {
@@ -79,6 +106,24 @@ export function LeaderboardView({
   const ranked = board.filter((e) => !e.provisional);
   const myRank = ranked.findIndex((e) => e.isMe) + 1;
 
+  const addPhantom = () => {
+    const n = phantom.trim();
+    if (!n) return;
+    onRoster(mergeEntry(roster, {
+      v: 1, n, d: 120 + Math.floor(Math.random() * 300), a: 60 + Math.floor(Math.random() * 35),
+      l: Math.floor(Math.random() * 8), e: Math.round(Math.random() * 300) / 10,
+      t: 1500 + Math.floor(Math.random() * 2500),
+    }, true, Date.now()));
+    setPhantom('');
+  };
+
+  const bestow = () => {
+    if (!titleTarget || !titleText.trim()) return;
+    if (titleTarget === me.n) onOverride({ ...(override ?? {}), g: titleText.trim() } as Override);
+    else onRoster(updateEntry(roster, titleTarget, { g: titleText.trim() }));
+    setTitleText('');
+  };
+
   /** Write one edited field. Mine becomes an override; theirs rewrites the roster. */
   const editField = (entry: Entry, key: string, raw: string) => {
     const value = sanitiseField(key as never, raw);
@@ -96,7 +141,7 @@ export function LeaderboardView({
         {board.length === 1
           ? 'Just you so far. Paste a friend’s link below to put them on the board.'
           : myRank > 0
-            ? `${board.length} players. You are ${ordinal(myRank)} of ${ranked.length} ranked, by ${COLUMNS.find((c) => c.key === sort)!.label.toLowerCase()}.`
+            ? `${board.length} players. You are ${ordinal(myRank)} of ${ranked.length} ranked, by ${columns.find((c) => c.key === sort)!.label.toLowerCase()}.`
             : `${board.length} players. Answer ${RANKED_MIN_DRILLS} drills to be ranked.`}
       </p>
 
@@ -123,6 +168,130 @@ export function LeaderboardView({
               )}
             </div>
           </div>
+
+          {/* ---- The big red button ---------------------------------------- */}
+          <div className="mt-3 rounded-xl border border-fuchsia-400/40 bg-gradient-to-r
+                          from-fuchsia-900/40 via-indigo-900/30 to-rose-900/40 p-3">
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-0 flex-1">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-fuchsia-200/70">
+                  Whose birthday is it?
+                </span>
+                <input
+                  value={bdayName}
+                  onChange={(ev) => setBdayName(ev.target.value)}
+                  placeholder="Everybody"
+                  maxLength={24}
+                  className="w-full rounded-md border border-fuchsia-400/30 bg-black/50 px-2 py-1.5
+                             text-sm text-emerald-50 outline-none focus:border-fuchsia-300"
+                />
+              </label>
+              {partyOn ? (
+                <button
+                  onClick={() => onParty(null)}
+                  className="btn border-white/25 bg-black/40 px-4 py-2 text-xs text-white/80 hover:bg-black/60"
+                >
+                  End the party
+                </button>
+              ) : (
+                <button
+                  onClick={() => onParty(makeParty(bdayName, me.n, DEFAULT_HOURS))}
+                  className="btn animate-pulse border-fuchsia-300/60 bg-fuchsia-500/30 px-4 py-2
+                             text-sm font-bold text-fuchsia-50 hover:bg-fuchsia-500/45"
+                >
+                  🪩 START THE PARTY
+                </button>
+              )}
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-fuchsia-100/50">
+              {partyOn
+                ? `Party is live for ${party!.name}. Every link you share from now on carries it — whoever opens one drops into the disco and starts earning birthday points.`
+                : `Turns the whole app into a disco for ${DEFAULT_HOURS} hours, here and for anyone who opens a link you share while it runs. Top birthday points gets ${TITLES[0]!.emoji} ${TITLES[0]!.label}.`}
+            </p>
+          </div>
+
+          {/* ---- The rest of the toybox ------------------------------------ */}
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="flex items-end gap-2">
+              <label className="min-w-0 flex-1">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-rose-200/60">
+                  Invent a rival
+                </span>
+                <input
+                  value={phantom}
+                  onChange={(ev) => setPhantom(ev.target.value)}
+                  placeholder="Name"
+                  maxLength={24}
+                  onKeyDown={(ev) => { if (ev.key === 'Enter') addPhantom(); }}
+                  className="w-full rounded-md border border-rose-500/30 bg-black/50 px-2 py-1.5
+                             text-sm text-emerald-50 outline-none focus:border-rose-400"
+                />
+              </label>
+              <button onClick={addPhantom} className="btn-ghost px-3 py-1.5 text-xs">Add</button>
+            </div>
+
+            <div className="flex items-end gap-2">
+              <label className="min-w-0 flex-1">
+                <span className="mb-1 block text-[10px] uppercase tracking-widest text-rose-200/60">
+                  Bestow a title
+                </span>
+                <div className="flex gap-1">
+                  <select
+                    value={titleTarget}
+                    onChange={(ev) => setTitleTarget(ev.target.value)}
+                    className="min-w-0 flex-1 rounded-md border border-rose-500/30 bg-black/50 px-2 py-1.5
+                               text-sm text-emerald-50 outline-none"
+                  >
+                    <option value="">Who…</option>
+                    {board.map((e) => <option key={e.score.n} value={e.score.n}>{e.score.n}</option>)}
+                  </select>
+                  <input
+                    value={titleText}
+                    onChange={(ev) => setTitleText(ev.target.value)}
+                    placeholder="Title"
+                    maxLength={24}
+                    onKeyDown={(ev) => { if (ev.key === 'Enter') bestow(); }}
+                    className="min-w-0 flex-1 rounded-md border border-rose-500/30 bg-black/50 px-2 py-1.5
+                               text-sm text-emerald-50 outline-none focus:border-rose-400"
+                  />
+                </div>
+              </label>
+              <button onClick={bestow} className="btn-ghost px-3 py-1.5 text-xs">Give</button>
+            </div>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              onClick={() => onRoster(roster.map((e) => ({
+                ...e, s: { ...e.s, b: Math.floor(Math.random() * 400) + 50 },
+              })))}
+              className="btn-ghost px-3 py-1.5 text-xs"
+              title="Sprinkle birthday points across everyone"
+            >
+              🎁 Sprinkle points
+            </button>
+            <button
+              onClick={() => onRoster(roster.map((e) => ({
+                ...e,
+                s: {
+                  ...e.s,
+                  l: Math.floor(Math.random() * 10),
+                  a: Math.floor(Math.random() * 101),
+                  t: 800 + Math.floor(Math.random() * 4000),
+                },
+              })))}
+              className="btn-ghost px-3 py-1.5 text-xs"
+              title="Randomise everyone else's stats"
+            >
+              🎲 Shuffle the board
+            </button>
+            <button
+              onClick={() => { if (confirm('Remove every other player from your board?')) onRoster([]); }}
+              className="btn-ghost px-3 py-1.5 text-xs hover:text-rose-300"
+            >
+              💣 Clear the board
+            </button>
+          </div>
           <p className="mt-2 text-[11px] leading-relaxed text-emerald-200/45">
             Nothing here leaves this browser until you share a link — then edited numbers travel like
             any others, with a valid checksum, because you generated them rather than tampering with
@@ -140,7 +309,7 @@ export function LeaderboardView({
             <tr className="border-b border-emerald-900/60 text-[11px] uppercase tracking-widest text-emerald-200/45">
               <th className="px-3 py-2 text-left font-medium">#</th>
               <th className="px-3 py-2 text-left font-medium">Player</th>
-              {COLUMNS.map((c) => (
+              {columns.map((c) => (
                 <th key={c.key} className="px-3 py-2 text-right font-medium">
                   <button
                     onClick={() => setSort(c.key)}
@@ -169,6 +338,8 @@ export function LeaderboardView({
                   entry={e}
                   rank={e.provisional ? null : board.filter((x) => !x.provisional).indexOf(e) + 1}
                   admin={admin}
+                  showBp={anyPoints}
+                  bpRank={bpRank.get(e.score.n)}
                   editing={open}
                   overridden={e.isMe && isOverridden(override)}
                   onEdit={() => setEditing(open ? null : key)}
@@ -176,7 +347,7 @@ export function LeaderboardView({
                 />,
                 open ? (
                   <tr key={`${key}-${i}-edit`} className="bg-rose-950/25">
-                    <td colSpan={9} className="px-3 py-3">
+                    <td colSpan={anyPoints ? 10 : 9} className="px-3 py-3">
                       <div className="flex flex-wrap items-end gap-3">
                         {FIELDS.map((f) => (
                           <label key={f.key} className="block">
@@ -268,11 +439,13 @@ export function LeaderboardView({
 }
 
 function Row({
-  entry, rank, admin, editing, overridden, onEdit, onRemove,
+  entry, rank, admin, showBp, bpRank, editing, overridden, onEdit, onRemove,
 }: {
   entry: Entry;
   rank: number | null;
   admin: boolean;
+  showBp: boolean;
+  bpRank?: number;
   editing: boolean;
   overridden: boolean;
   onEdit: () => void;
@@ -280,6 +453,7 @@ function Row({
 }) {
   const s = entry.score;
   const medal = rank === 1 ? 'text-amber-300' : rank === 2 ? 'text-zinc-300' : rank === 3 ? 'text-orange-400' : '';
+  const title = s.g ? { label: s.g, emoji: '🎖️' } : bpRank !== undefined ? titleForRank(bpRank) : null;
   return (
     <tr className={editing ? 'bg-rose-950/25' : entry.isMe ? 'bg-emerald-500/10' : ''}>
       <td className={`px-3 py-2.5 font-bold tnum ${medal || 'text-emerald-200/40'}`}>
@@ -300,6 +474,15 @@ function Row({
         {entry.provisional && (
           <span className="ml-1.5 text-[10px] uppercase tracking-wide text-emerald-200/35">provisional</span>
         )}
+        {title && (
+          <span
+            title={`${title.label}`}
+            className="ml-1.5 whitespace-nowrap rounded bg-fuchsia-500/20 px-1.5 py-0.5 text-[10px]
+                       font-bold uppercase tracking-wide text-fuchsia-200"
+          >
+            {title.emoji} {title.label}
+          </span>
+        )}
         {overridden && (
           <span
             title="Overridden in admin mode — this is not your real score"
@@ -314,6 +497,11 @@ function Row({
       <td className="tnum px-3 py-2.5 text-right text-rose-200/90">{entry.evPer100.toFixed(1)}</td>
       <td className="tnum px-3 py-2.5 text-right text-emerald-200/70">{s.d}</td>
       <td className="tnum px-3 py-2.5 text-right text-emerald-200/70">{time(s.t)}</td>
+      {showBp && (
+        <td className="tnum px-3 py-2.5 text-right font-bold text-fuchsia-300">
+          {(s.b ?? 0).toLocaleString()}
+        </td>
+      )}
       <td className="max-w-[10rem] truncate px-3 py-2.5 text-xs text-rose-200/80">{leakLabel(s.k)}</td>
       <td className="whitespace-nowrap px-2 py-2.5 text-right">
         {admin && (

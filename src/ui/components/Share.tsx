@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { TAGS } from '../../coach/mistakes';
 import { SharedScore, cleanName, runPassed, saveName, shareUrl } from '../../coach/share';
+import { Party, withParty } from '../../coach/party';
 
 const fmt = {
   time: (ms: number) => (ms > 0 ? `${(ms / 1000).toFixed(1)}s` : '—'),
@@ -90,17 +91,19 @@ export function ShareButton({ onClick, label = 'Share' }: { onClick: () => void;
 }
 
 export function ShareModal({
-  score, name, onName, onClose,
+  score, name, party, onName, onClose,
 }: {
   score: SharedScore;
   name: string;
+  /** A live party rides along, so opening the link starts the disco. */
+  party: Party | null;
   onName: (n: string) => void;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const named = useMemo(() => ({ ...score, n: cleanName(name) || 'Anonymous' }), [score, name]);
-  const url = useMemo(() => shareUrl(named), [named]);
+  const url = useMemo(() => withParty(shareUrl(named), party), [named, party]);
 
   useEffect(() => { setCopied(false); }, [url]);
 
@@ -162,6 +165,7 @@ export function ShareModal({
             The whole score is inside the link, so it works with no account and no server. That also
             means it is a boast, not a receipt — anyone can edit a link. Your friend gets a nudge if
             one has been tampered with.
+            {party && <b className="ml-1 text-fuchsia-300">This link also carries the party.</b>}
           </p>
         </div>
       </div>

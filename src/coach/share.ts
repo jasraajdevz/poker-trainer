@@ -38,6 +38,10 @@ export interface SharedScore {
   o?: number;
   /** Made in upgraded mode. */
   p?: 1;
+  /** Birthday points earned at a party. */
+  b?: number;
+  /** A title awarded at a party, e.g. "Disco Monarch". */
+  g?: string;
 }
 
 const MAX_NAME = 24;
@@ -89,11 +93,18 @@ function base64UrlToUtf8(s: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-/** The payload without its checksum, in a stable order. */
+/**
+ * The payload without its checksum, in a stable order.
+ *
+ * Party fields are appended only when present, so links created before birthday
+ * mode existed still hash to the same value and keep validating.
+ */
 function canonical(s: SharedScore): string {
-  return JSON.stringify([
+  const base = [
     s.v, s.n, s.d, s.a, s.l, s.e, s.t, s.k ?? '', s.s ?? '', s.c ?? -1, s.o ?? -1, s.p ?? 0,
-  ]);
+  ];
+  if (s.b === undefined && s.g === undefined) return JSON.stringify(base);
+  return JSON.stringify([...base, s.b ?? 0, s.g ?? '']);
 }
 
 export function encodeScore(score: SharedScore): string {
@@ -130,6 +141,8 @@ export function decodeScore(payload: string): DecodedScore | null {
     ...(raw['c'] !== undefined && Number(raw['c']) >= 0 ? { c: clamp(raw['c'], 0, 999) } : {}),
     ...(raw['o'] !== undefined && Number(raw['o']) > 0 ? { o: clamp(raw['o'], 1, 999) } : {}),
     ...(raw['p'] === 1 ? { p: 1 as const } : {}),
+    ...(raw['b'] !== undefined ? { b: clamp(raw['b'], 0, 1_000_000) } : {}),
+    ...(typeof raw['g'] === 'string' && raw['g'] ? { g: cleanName(raw['g']).slice(0, 24) } : {}),
   };
   if (score.c !== undefined && score.o !== undefined && score.c > score.o) score.c = score.o;
 
@@ -150,7 +163,9 @@ export function scoreFromHash(hash: string): DecodedScore | null {
 }
 
 /** Everything a player has done so far, as a shareable card. */
-export function buildScore(p: Progress, name: string, pro: boolean): SharedScore {
+export function buildScore(
+  p: Progress, name: string, pro: boolean, birthdayPoints = 0, title = '',
+): SharedScore {
   const answered = p.history.length;
   const right = p.history.filter((r) => r.correct).length;
   const passed = LEVEL_ORDER.filter((id) => levelProgress(p, id).completed).length;
@@ -168,6 +183,8 @@ export function buildScore(p: Progress, name: string, pro: boolean): SharedScore
     t: l0.length ? Math.round(median(l0.map((r) => r.elapsedMs))) : 0,
     ...(top ? { k: top.tag } : {}),
     ...(pro ? { p: 1 as const } : {}),
+    ...(birthdayPoints > 0 ? { b: Math.floor(birthdayPoints) } : {}),
+    ...(title ? { g: cleanName(title).slice(0, 24) } : {}),
   };
 }
 

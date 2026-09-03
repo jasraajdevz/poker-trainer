@@ -198,3 +198,35 @@ reverse; say the word on any of them.
 52. **Edited values go through the same clamps as everything else**, so a hand-
     edited localStorage entry cannot put the board into a state the UI cannot
     render.
+
+## Birthday mode
+
+53. **The party propagates like everything else.** No server means no broadcast,
+    so a live party is appended to every link the host shares as a `#pty=`
+    payload. Opening one starts the disco and pays the join bonus.
+54. **The party travels; the code does not.** A friend who opens a party link
+    gets the disco and the points but inherits neither Omega nor admin. Verified
+    on a genuinely fresh browser rather than assumed.
+55. **Parties expire.** Twenty-four hours by default, capped at a week, and the
+    decoder refuses a start date in the future — otherwise a link found in a
+    chat log next March would relaunch the confetti forever.
+56. **The music is original.** A synthesised 130 BPM surf-rock instrumental in E
+    Phrygian dominant, written in the style of the fast Mediterranean surf sound
+    the user asked for rather than reproducing a copyrighted recording. Web Audio
+    only, so there is no file to ship and nothing to license.
+57. **The banner gets its own layout space.** A fixed strip with the app padded
+    to match, so the rainbow can never land on top of something you need to read.
+58. **The marquee is sized to its content, not to a percentage.** Two copies at
+    `width: 200%` left a blank gap whenever the phrase was shorter than the
+    viewport; six copies at `max-content` shifted by half is seamless at any
+    width. Caught by watching the strip go empty mid-loop.
+59. **Birthday points ignore the provisional rule.** Everywhere else a player
+    under 20 drills sinks below the ranked, but on the party column turning up
+    IS the qualification, so the sort is pure points.
+60. **Persist from effects, never from inside a state updater.** Two real bugs
+    came from this: the party failed to survive a reload, and the join bonus
+    silently vanished because StrictMode's second invocation of the updater found
+    the ledger already written and returned unchanged. Both now write from an
+    effect keyed on the value.
+61. **Everything animated respects `prefers-reduced-motion`.** Loud is a choice;
+    motion sickness is not.

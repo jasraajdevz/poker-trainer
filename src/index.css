@@ -47,3 +47,67 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .rise { animation: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Birthday mode. Loud on purpose, but every piece sits in its own layer:
+   the banner has reserved height, the rest is pointer-events-none behind the UI.
+   --------------------------------------------------------------------------- */
+
+@keyframes disco-hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+@keyframes disco-fall {
+  0%   { transform: translateY(-10vh) rotate(0deg);   opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+@keyframes disco-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes disco-letter {
+  0%   { color: #ff3b5c; }
+  16%  { color: #ff9f1c; }
+  33%  { color: #ffe14d; }
+  50%  { color: #4ade80; }
+  66%  { color: #38bdf8; }
+  83%  { color: #a78bfa; }
+  100% { color: #ff3b5c; }
+}
+@keyframes disco-sweep {
+  0%   { transform: translateX(-30vw) rotate(14deg); }
+  50%  { transform: translateX(70vw)  rotate(14deg); }
+  100% { transform: translateX(-30vw) rotate(14deg); }
+}
+@keyframes disco-sweep-2 {
+  0%   { transform: translateX(40vw)  rotate(-18deg); }
+  50%  { transform: translateX(-50vw) rotate(-18deg); }
+  100% { transform: translateX(40vw)  rotate(-18deg); }
+}
+@keyframes disco-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.disco-wash {
+  background:
+    radial-gradient(60% 50% at 20% 15%, rgba(236, 72, 153, 0.30), transparent 70%),
+    radial-gradient(55% 45% at 80% 20%, rgba(56, 189, 248, 0.28), transparent 70%),
+    radial-gradient(70% 60% at 50% 95%, rgba(167, 139, 250, 0.28), transparent 70%);
+  animation: disco-hue 9s linear infinite;
+}
+
+.disco-beam,
+.disco-beam-2 {
+  background: linear-gradient(to bottom, transparent, #fff 45%, transparent);
+  filter: blur(22px);
+}
+.disco-beam   { animation: disco-sweep 7s ease-in-out infinite; }
+.disco-beam-2 { animation: disco-sweep-2 9s ease-in-out infinite; }
+
+.disco-confetti { animation-name: disco-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+
+/* Sized to its content, so translating by half lands exactly on a copy. */
+.disco-marquee { width: max-content; animation: disco-scroll 26s linear infinite; }
+.disco-letter  { animation: disco-letter 1.6s linear infinite; transition: transform 90ms ease-out; }
+.disco-ball    { animation: disco-spin 4s linear infinite; display: inline-block; }
+
+/* Loud is a choice; motion sickness is not. */
+@media (prefers-reduced-motion: reduce) {
+  .disco-wash, .disco-confetti, .disco-marquee, .disco-letter, .disco-ball,
+  .disco-beam, .disco-beam-2 { animation: none; }
+  .disco-confetti { opacity: 0.5; }
+  .disco-letter { color: #ffe14d; }
+}

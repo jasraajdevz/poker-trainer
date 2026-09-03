@@ -25,7 +25,7 @@ export const MAX_ENTRIES = 12;
 /** Drills needed before an entry is ranked rather than shown as provisional. */
 export const RANKED_MIN_DRILLS = 20;
 
-export type SortKey = 'levels' | 'accuracy' | 'ev' | 'drills' | 'speed';
+export type SortKey = 'levels' | 'accuracy' | 'ev' | 'drills' | 'speed' | 'birthday';
 
 export interface Column {
   key: SortKey;
@@ -43,6 +43,12 @@ export const COLUMNS: Column[] = [
   { key: 'drills', label: 'Drills', short: 'Drills', higherWins: true, hint: 'Total drills answered' },
   { key: 'speed', label: 'Median read', short: 'Read', higherWins: false, hint: 'Median L0 response time — lower is better' },
 ];
+
+/** Only shown while a party is running, or after one has left points behind. */
+export const BIRTHDAY_COLUMN: Column = {
+  key: 'birthday', label: 'Birthday points', short: 'BP', higherWins: true,
+  hint: 'Points earned during a birthday party',
+};
 
 export interface Entry {
   score: SharedScore;
@@ -135,6 +141,7 @@ const valueOf = (s: SharedScore, key: SortKey): number => {
     case 'ev': return evPer100(s);
     case 'drills': return s.d;
     case 'speed': return s.t > 0 ? s.t : Number.MAX_SAFE_INTEGER; // no time = last
+    case 'birthday': return s.b ?? 0;
   }
 };
 
@@ -157,10 +164,11 @@ export function buildBoard(
     })),
   ];
 
-  const col = COLUMNS.find((c) => c.key === sort)!;
+  const col = [...COLUMNS, BIRTHDAY_COLUMN].find((c) => c.key === sort)!;
   const cmp = (a: Entry, b: Entry): number => {
-    // Provisional entries sink below everyone who has done the work.
-    if (a.provisional !== b.provisional) return a.provisional ? 1 : -1;
+    // Provisional entries sink below everyone who has done the work — except on
+    // birthday points, where turning up at the party is the whole qualification.
+    if (sort !== 'birthday' && a.provisional !== b.provisional) return a.provisional ? 1 : -1;
     const av = valueOf(a.score, sort);
     const bv = valueOf(b.score, sort);
     if (av !== bv) return col.higherWins ? bv - av : av - bv;
@@ -176,9 +184,10 @@ export const leakLabel = (tag?: ErrorTag): string => (tag ? TAGS[tag].label : '�
 // Board links
 // ---------------------------------------------------------------------------
 
-type Tuple = [string, number, number, number, number, number, string];
+type Tuple = [string, number, number, number, number, number, string, number, string];
 
-const toTuple = (s: SharedScore): Tuple => [s.n, s.d, s.a, s.l, s.e, s.t, s.k ?? ''];
+const toTuple = (s: SharedScore): Tuple =>
+  [s.n, s.d, s.a, s.l, s.e, s.t, s.k ?? '', s.b ?? 0, s.g ?? ''];
 
 function fnv1a(s: string): number {
   let h = 2166136261 >>> 0;
@@ -239,6 +248,8 @@ export function decodeBoard(payload: string): DecodedBoard | null {
       e: clamp(row[4], 0, 1_000_000, 1),
       t: clamp(row[5], 0, 3_600_000),
       ...(tag ? { k: tag } : {}),
+      ...(row[7] !== undefined ? { b: clamp(row[7], 0, 1_000_000) } : {}),
+      ...(typeof row[8] === 'string' && row[8] ? { g: cleanName(row[8]).slice(0, 24) } : {}),
     });
   }
   if (scores.length === 0) return null;

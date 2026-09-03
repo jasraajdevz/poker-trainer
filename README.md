@@ -12,7 +12,7 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 282 tests
+npm test        # 301 tests
 npm run build   # production bundle
 npm run deploy  # publish to GitHub Pages
 ```
@@ -92,6 +92,31 @@ Without the code everything above still works and every number is still real. Wi
 to 3M leaves, the full leak leaderboard, Boss Fights, the Nemesis opponent that
 reads your logged leaks, and the Lab.
 
+### Birthday mode
+
+The big fuchsia button in the admin panel. Name whoever it is for, hit **START
+THE PARTY**, and the whole app turns into a disco for 24 hours: a rainbow
+HAPPY BIRTHDAY marquee in its own strip, falling confetti, sweeping spotlights,
+and a colour wash that strobes on the kick drum.
+
+It reaches everyone the same way scores do — every link you share while it runs
+carries the party, so whoever opens one drops straight into the disco. They do
+**not** inherit the code or admin mode; only the party travels.
+
+**Birthday points** are earned by turning up (+100, once per party), answering
+drills (+25, +25 more if correct) and tapping the disco ball (+5, rate limited).
+They get their own leaderboard column, and the top three take titles —
+👑 Disco Monarch, 🪩 Glitter Lieutenant, 🎉 Confetti Sergeant. On that column
+alone, provisional players rank normally: turning up is the qualification.
+
+**The music** is an original instrumental synthesised live with the Web Audio
+API — 130 BPM, tremolo-picked surf-rock lead in E Phrygian dominant over driving
+double-time drums, with a spring-reverb slapback. No audio files and no
+licensing: it is a piece written in that style, not a copy of a recording.
+Browsers block autoplay, so it starts from the 🔈 button in the party bar.
+
+Everything animated honours `prefers-reduced-motion`.
+
 ### Admin mode
 
 Toggle inside the Omega panel. Every leaderboard row becomes editable, plus a
@@ -116,6 +141,7 @@ the comfortable version of a thing the format never protected against.
 ## Layout
 
 ```
+src/audio/      the party instrumental, synthesised with Web Audio
 src/engine/     cards, evaluator, equity, ranges, odds, ev, bots, game
 src/curriculum/ one file per level, drill generators and grading
 src/coach/      grading support, error taxonomy, spaced repetition, dojo, progress, tier

@@ -17,6 +17,14 @@ import {
 import {
   Override, adminEnabled, applyOverride, loadOverride, saveOverride, setAdmin,
 } from '../coach/admin';
+import {
+  CORRECT_BONUS, DRILL_POINTS, JOIN_BONUS, Party, claimJoinBonus, isLive, loadParty,
+  loadPoints, partyFromHash, savePoints, saveParty,
+} from '../coach/party';
+import { discoBeat } from '../audio/discoBeat';
+import {
+  BANNER_HEIGHT, DiscoBanner, DiscoBar, DiscoOverlay, useDiscoPulse,
+} from './components/DiscoMode';
 import { Home } from './views/Home';
 import { LevelView } from './views/LevelView';
 import { DojoView } from './views/DojoView';
@@ -49,6 +57,44 @@ export function App() {
   const [roster, setRoster] = useState<StoredEntry[]>(() => loadRoster());
   const [admin, setAdminOn] = useState(() => adminEnabled());
   const [override, setOverrideState] = useState<Override | null>(() => loadOverride());
+  const [party, setPartyState] = useState<Party | null>(() => loadParty());
+  const [points, setPointsState] = useState(() => loadPoints());
+  const pulse = useDiscoPulse();
+  const partyOn = isLive(party);
+
+  // Persist from effects, never from inside a state updater: React may invoke
+  // an updater twice or discard it, and the early-return path below would skip
+  // the write entirely, leaving storage out of step with what is on screen.
+  useEffect(() => { saveParty(party); }, [party]);
+  useEffect(() => { savePoints(points); }, [points]);
+
+  const setParty = useCallback((p: Party | null) => {
+    setPartyState(p);
+    if (!p) discoBeat.stop();
+  }, []);
+
+  const addPoints = useCallback((delta: number) => {
+    setPointsState((n) => n + delta);
+  }, []);
+
+  /** Adopt a party arriving in a link, and pay the join bonus once. */
+  const takeParty = useCallback((hash: string) => {
+    const found = partyFromHash(hash);
+    if (!found || !isLive(found)) return;
+    setPartyState((cur) => (cur && cur.at >= found.at ? cur : found));
+    // Claim outside the updater. claimJoinBonus writes a ledger so the bonus is
+    // paid once per party, and a StrictMode double-invoke would make the second
+    // call a no-op and swallow the points.
+    const { fresh } = claimJoinBonus(found, loadPoints());
+    if (fresh) setPointsState((n) => n + JOIN_BONUS);
+  }, []);
+
+  useEffect(() => {
+    if (typeof location !== 'undefined') takeParty(location.hash);
+  }, [takeParty]);
+
+  // Music stops when the party is over, whatever else is going on.
+  useEffect(() => { if (!partyOn) discoBeat.stop(); }, [partyOn]);
 
   useEffect(() => { saveRoster(roster); }, [roster]);
 
@@ -59,8 +105,11 @@ export function App() {
 
   // The score everything else uses. In admin mode an override sits on top of it.
   const me = useMemo(
-    () => applyOverride(buildScore(progress, name || 'You', pro), admin ? override : null),
-    [progress, name, pro, admin, override],
+    () => applyOverride(
+      buildScore(progress, name || 'You', pro, points, ''),
+      admin ? override : null,
+    ),
+    [progress, name, pro, admin, override, points],
   );
 
   const updateRoster = useCallback((next: StoredEntry[]) => setRoster(next), []);
@@ -101,13 +150,14 @@ export function App() {
   // fragment, which does not remount anything. Listen for it.
   useEffect(() => {
     const onHash = () => {
+      takeParty(location.hash);
       if (takeBoard(location.hash)) return;
       const found = scoreFromHash(location.hash);
       if (found) setIncoming(found);
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, [takeBoard]);
+  }, [takeBoard, takeParty]);
 
   const dismissIncoming = useCallback(() => {
     setIncoming(null);
@@ -119,7 +169,11 @@ export function App() {
 
   useEffect(() => { saveProgress(progress); }, [progress]);
 
-  const onResult = useCallback((r: DrillResult) => setProgress((p) => applyResult(p, r)), []);
+  const onResult = useCallback((r: DrillResult) => {
+    setProgress((p) => applyResult(p, r));
+    // Drills answered during a party are worth birthday points.
+    if (isLive(loadParty())) addPoints(DRILL_POINTS + (r.correct ? CORRECT_BONUS : 0));
+  }, [addPoints]);
   const home = useCallback(() => { setView({ k: 'home' }); setBossLabel(undefined); }, []);
 
   const pick = useCallback((id: LevelId) => {
@@ -220,8 +274,10 @@ export function App() {
             me={me}
             admin={admin}
             override={override}
+            party={party}
             onRoster={updateRoster}
             onOverride={setOverride}
+            onParty={setParty}
             onExit={home}
           />
         );
@@ -233,11 +289,29 @@ export function App() {
 
   return (
     <>
-      {body}
+      {partyOn && party && (
+        <>
+          <DiscoOverlay pulse={pulse} />
+          <DiscoBanner party={party} pulse={pulse} />
+        </>
+      )}
+      <div className="relative z-10" style={partyOn ? { paddingTop: BANNER_HEIGHT } : undefined}>
+        {body}
+      </div>
+      {partyOn && party && (
+        <DiscoBar
+          party={party}
+          points={points}
+          onPoints={addPoints}
+          canEnd={admin}
+          onEnd={() => setParty(null)}
+        />
+      )}
       {sharing && (
         <ShareModal
           score={sharing}
           name={name}
+          party={partyOn ? party : null}
           onName={setName}
           onClose={() => setSharing(null)}
         />
@@ -259,7 +333,7 @@ export function App() {
           }}
         />
       )}
-      {view.k !== 'home' && (
+      {view.k !== 'home' && !partyOn && (
         <button
           onClick={() => setModal(true)}
           className={`fixed right-4 top-4 z-40 rounded-lg border px-2.5 py-1 text-[10px] font-bold
