@@ -253,3 +253,34 @@ reverse; say the word on any of them.
 68. **The minimum party is one minute, not one hour.** `makeParty` clamped hours
     to a floor of 1, which would have made the fifteen-minute test button run for
     an hour. Caught by a test asserting the test party expires.
+
+## Kid and adult modes, and making it fun
+
+69. **The honest diagnosis first.** The engine was strong and the app around it
+    felt like homework: a list of locked levels, a timed quiz as the first
+    experience, feedback delivered as a wall of numbers, and the one thing people
+    actually want — playing hands — locked behind eight levels. Kid mode was the
+    right lever because building it forces the fun layer adults needed too.
+70. **Kid mode changes language, generosity and celebration — never the maths.**
+    Same evaluator, same Monte Carlo, same drills. Chips become stars, marking
+    softens, the clock comes off. Dumbing the poker down would have made it a
+    worse teacher, not a friendlier one.
+71. **No money anywhere in kid mode**, enforced by a test that scans the kid
+    vocabulary for money and gambling words rather than trusting a careful edit.
+72. **Kid feedback never scolds**, also enforced by a test: the miss messages are
+    checked against a list of harsh words.
+73. **Play is the front door.** Quick play deals a real hand against the bots
+    with no unlock and no score. Someone who has never opened the app can be
+    playing poker in one click.
+74. **Mode is a module-level setting, not a parameter.** Threading it through
+    nine level modules would have touched every signature; the app has exactly
+    one player at a time. Tests set it explicitly.
+75. **The pass mark is passed in, not imported.** `progress.ts` takes it as an
+    argument so it needs no import from `profile.ts`, which imports from it.
+76. **Badges are derived, never stored as truth.** They are predicates over the
+    real history, recomputed each render; storage only remembers which ones have
+    already been celebrated so the toast fires once.
+77. **The streak bonus is capped.** Otherwise a long lucky run inflates XP past
+    anything the ranks were spaced for.
+78. **"Wrong" is a soft low thud.** A buzzer on every miss trains people to stop
+    playing, which is the opposite of what a trainer is for.

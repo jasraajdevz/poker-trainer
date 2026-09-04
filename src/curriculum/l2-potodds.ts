@@ -18,10 +18,10 @@ import { Position, openingRange, openingPercent } from '../engine/preflopChart';
 import { potOdds, impliedOddsNeeded } from '../engine/odds';
 import { evCall, evFold } from '../engine/ev';
 import { ErrorTag } from '../coach/mistakes';
+import { cfg } from '../coach/profile';
 import { Drill, DrillAnswers, DrillFeedback, LevelModule, ProofLine } from './types';
 
 const BIG_BLIND = 10;
-const PRICE_TOLERANCE = 2; // percentage points
 
 /** Bet sizes as a fraction of the pot, and how tight villain's betting range is. */
 const PLAN = [
@@ -152,7 +152,7 @@ function build(index: number, seed: string): Drill {
         unit: '%',
         min: 0,
         max: 100,
-        tolerance: PRICE_TOLERANCE,
+        tolerance: cfg().priceTolerance,
         hint: 'What you put in, over the pot after you put it in.',
       },
       {
@@ -168,8 +168,9 @@ function build(index: number, seed: string): Drill {
     grade(answers: DrillAnswers): DrillFeedback {
       const givenPrice = Number(answers['price']);
       const givenAction = String(answers['action'] ?? '');
+      const priceTol = cfg().priceTolerance;
       const priceCorrect =
-        Number.isFinite(givenPrice) && Math.abs(givenPrice - requiredPct) <= PRICE_TOLERANCE;
+        Number.isFinite(givenPrice) && Math.abs(givenPrice - requiredPct) <= priceTol;
       const actionCorrect = givenAction === (shouldCall ? 'call' : 'fold');
       const correct = priceCorrect && actionCorrect;
 
@@ -241,7 +242,7 @@ function build(index: number, seed: string): Drill {
             correct: priceCorrect,
             given: `${Number.isFinite(givenPrice) ? givenPrice.toFixed(0) : '?'}%`,
             expected: `${requiredPct.toFixed(1)}%`,
-            detail: `+/- ${PRICE_TOLERANCE} points accepted`,
+            detail: `+/- ${priceTol} points accepted`,
           },
           {
             stepId: 'action',

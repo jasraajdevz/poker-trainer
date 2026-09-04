@@ -129,7 +129,9 @@ export function applyResult(p: Progress, r: DrillResult): Progress {
 }
 
 /** Close out a level run and unlock the next one if the pass mark was met. */
-export function finishAttempt(p: Progress, id: LevelId, drillCount: number): Progress {
+export function finishAttempt(
+  p: Progress, id: LevelId, drillCount: number, passMark: number = PASS_MARK,
+): Progress {
   const next: Progress = { ...p, levels: { ...p.levels } };
   const lp = levelProgress(next, id);
   const attempts = [...lp.attempts];
@@ -137,7 +139,7 @@ export function finishAttempt(p: Progress, id: LevelId, drillCount: number): Pro
   if (!cur) return next;
   attempts[attempts.length - 1] = { ...cur, finishedAt: Date.now() };
   const accuracy = cur.results.length ? cur.results.filter((r) => r.correct).length / drillCount : 0;
-  const completed = lp.completed || accuracy >= PASS_MARK;
+  const completed = lp.completed || accuracy >= passMark;
   next.levels[id] = { ...lp, attempts, bestAccuracy: Math.max(lp.bestAccuracy, accuracy), completed };
   if (completed) {
     const nextId = LEVEL_ORDER[LEVEL_ORDER.indexOf(id) + 1];

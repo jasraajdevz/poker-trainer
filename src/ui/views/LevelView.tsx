@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DrillAnswers, DrillFeedback, LevelModule, PASS_MARK } from '../../curriculum/types';
+import { DrillAnswers, DrillFeedback, LevelModule } from '../../curriculum/types';
 import { DrillResult, median } from '../../coach/progress';
 import { TAGS } from '../../coach/mistakes';
 import { CoachPanel } from '../components/CoachPanel';
 import { PokerTable } from '../components/Table';
 import { ShareButton } from '../components/Share';
+import { Verdict } from '../components/Celebrate';
+import { Mode, cfg, levelLabel, praise, xpForDrill } from '../../coach/profile';
+import { sfx } from '../../audio/sfx';
 
 interface Props {
   level: LevelModule;
   timeTrend: number[];
   pro: boolean;
+  mode: Mode;
+  /** Report XP earned and the streak it landed on. */
+  onScored: (xp: number, streak: number) => void;
   /** Extra copy shown on the summary, e.g. a Boss Fight verdict. */
   bossLabel?: string;
   onResult: (r: DrillResult) => void;
@@ -19,8 +25,14 @@ interface Props {
 }
 
 export function LevelView({
-  level, timeTrend, pro, bossLabel, onResult, onFinish, onShare, onExit,
+  level, timeTrend, pro, mode, bossLabel, onScored, onResult, onFinish, onShare, onExit,
 }: Props) {
+  const PASS = cfg().passMark;
+  const label = levelLabel(level.id, level.title, level.subtitle, mode);
+  // Kid mode still records times for the trend, it just never shows a clock.
+  const showClock = !!level.tracksTime && cfg().timed;
+  const [streak, setStreak] = useState(0);
+  const [gained, setGained] = useState(0);
   const [attemptSeed, setAttemptSeed] = useState(() => `a${Date.now()}`);
   const [phase, setPhase] = useState<'lesson' | 'running' | 'summary'>('lesson');
   const [index, setIndex] = useState(0);
@@ -51,10 +63,10 @@ export function LevelView({
   }, [index, phase, attemptSeed]);
 
   useEffect(() => {
-    if (!level.tracksTime || phase !== 'running' || feedback) return;
+    if (!showClock || phase !== 'running' || feedback) return;
     const t = setInterval(() => setElapsed(performance.now() - startRef.current), 100);
     return () => clearInterval(t);
-  }, [level.tracksTime, phase, feedback, index]);
+  }, [showClock, phase, feedback, index]);
 
   useEffect(() => { if (step?.kind === 'number') inputRef.current?.focus(); }, [step, index]);
 
@@ -68,6 +80,13 @@ export function LevelView({
     }
     const ms = performance.now() - startRef.current;
     const f = drill.grade(next);
+    const run = f.correct ? streak + 1 : 0;
+    const fast = !!level.tracksTime && f.correct && ms < 3000;
+    const xp = xpForDrill(f.correct, run, fast);
+    setStreak(run);
+    setGained(xp);
+    onScored(xp, run);
+    if (f.correct) { if (run >= 3) sfx.streak(run); else sfx.correct(); } else sfx.wrong();
     setAnswers(next);
     setFeedback(f);
     setElapsed(ms);
@@ -78,7 +97,7 @@ export function LevelView({
     };
     setResults((rs) => [...rs, r]);
     onResult(r);
-  }, [drill, stepIdx, level.id, onResult]);
+  }, [drill, stepIdx, level.id, level.tracksTime, onResult, onScored, streak]);
 
   const advance = useCallback(() => {
     if (index + 1 >= level.drillCount) {
@@ -129,9 +148,9 @@ export function LevelView({
           ← All levels
         </button>
         <h1 className="text-3xl font-bold tracking-tight text-emerald-50">
-          {level.id} · {level.title}
+          {mode === 'kid' ? label.title : `${level.id} · ${level.title}`}
         </h1>
-        <p className="mt-1 text-emerald-200/60">{level.subtitle}</p>
+        <p className="mt-1 text-emerald-200/60">{label.subtitle}</p>
         <div className="mt-6 space-y-3">
           {level.lesson.body.map((p, i) => (
             <p key={i} className="leading-relaxed text-emerald-50/85">{p}</p>
@@ -152,7 +171,7 @@ export function LevelView({
             Start {level.drillCount} drills
           </button>
           <span className="text-xs text-emerald-200/45">
-            or press <span className="kbd">enter</span> · {Math.round(PASS_MARK * 100)}% to unlock the next level
+            or press <span className="kbd">enter</span> · {Math.round(PASS * 100)}% to unlock the next level
           </span>
         </div>
       </div>
@@ -163,7 +182,7 @@ export function LevelView({
   if (phase === 'summary') {
     const right = results.filter((r) => r.correct).length;
     const accuracy = right / level.drillCount;
-    const passed = accuracy >= PASS_MARK;
+    const passed = accuracy >= PASS;
     const med = median(results.map((r) => r.elapsedMs));
     const tally = new Map<string, number>();
     for (const r of results) for (const t of r.tags) tally.set(t, (tally.get(t) ?? 0) + 1);
@@ -172,7 +191,9 @@ export function LevelView({
     return (
       <div className="mx-auto max-w-2xl px-6 py-12">
         <div className={`panel border-2 p-6 ${passed ? 'border-emerald-500/50' : 'border-amber-500/40'}`}>
-          <div className="text-xs uppercase tracking-widest text-emerald-200/50">{level.id} complete</div>
+          <div className="text-xs uppercase tracking-widest text-emerald-200/50">
+            {mode === 'kid' ? `${label.title} complete` : `${level.id} complete`}
+          </div>
           <div className="tnum mt-1 text-5xl font-bold text-emerald-50">
             {right}<span className="text-2xl text-emerald-200/40"> / {level.drillCount}</span>
           </div>
@@ -180,12 +201,16 @@ export function LevelView({
           {bossLabel && <p className="mt-2 text-sm font-semibold text-amber-200">{bossLabel}</p>}
           <p className={`mt-3 text-sm ${passed ? 'text-emerald-300' : 'text-amber-300'}`}>
             {passed
-              ? `Passed. The next level is unlocked.`
-              : `You need ${Math.round(PASS_MARK * 100)}% to unlock the next level. Run it again — you get fresh drills, not the same ones.`}
+              ? mode === 'kid'
+                ? 'Brilliant! The next level just unlocked. 🎉'
+                : 'Passed. The next level is unlocked.'
+              : mode === 'kid'
+                ? `You need ${Math.round(PASS * 100)}% to open the next one. Have another go — you get brand new questions, not the same ones.`
+                : `You need ${Math.round(PASS * 100)}% to unlock the next level. Run it again — you get fresh drills, not the same ones.`}
           </p>
         </div>
 
-        {level.tracksTime && (
+        {showClock && (
           <div className="panel mt-4 p-4">
             <div className="flex items-baseline justify-between">
               <span className="text-xs uppercase tracking-widest text-emerald-200/50">Median response time</span>
@@ -205,7 +230,7 @@ export function LevelView({
         {tally.size > 0 && (
           <div className="panel mt-4 divide-y divide-emerald-900/50">
             <div className="px-4 py-2 text-xs uppercase tracking-widest text-emerald-200/50">
-              Leaks logged this run
+              {mode === 'kid' ? 'Things to practise' : 'Leaks logged this run'}
             </div>
             {[...tally.entries()].sort((a, b) => b[1] - a[1]).map(([tag, n]) => (
               <div key={tag} className="px-4 py-2.5">
@@ -228,7 +253,7 @@ export function LevelView({
             className="btn-primary"
             onClick={() => {
               setAttemptSeed(`a${Date.now()}`);
-              setResults([]); setIndex(0); setPhase('lesson');
+              setResults([]); setIndex(0); setStreak(0); setPhase('lesson');
             }}
           >
             Replay with new drills
@@ -249,10 +274,12 @@ export function LevelView({
       <header className="mb-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button onClick={onExit} className="text-xs text-emerald-300/60 hover:text-emerald-200">←</button>
-          <span className="text-sm font-semibold text-emerald-100">{level.id} · {level.title}</span>
+          <span className="text-sm font-semibold text-emerald-100">
+            {mode === 'kid' ? label.title : `${level.id} · ${level.title}`}
+          </span>
         </div>
         <div className="flex items-center gap-4">
-          {level.tracksTime && (
+          {showClock && (
             <span className="tnum text-sm text-emerald-200/60">{(elapsed / 1000).toFixed(1)}s</span>
           )}
           <span className="tnum text-xs text-emerald-200/50">
@@ -326,6 +353,13 @@ export function LevelView({
 
             {feedback && (
               <div className="rise space-y-3">
+                <Verdict
+                  correct={feedback.correct}
+                  text={feedback.correct ? praise(true, index, mode) : praise(false, index, mode)}
+                  mode={mode}
+                  streak={streak}
+                  xp={gained}
+                />
                 <div className="space-y-1.5">
                   {feedback.verdicts.map((v) => {
                     const s = drill.steps.find((x) => x.id === v.stepId)!;
@@ -342,7 +376,7 @@ export function LevelView({
                     );
                   })}
                 </div>
-                {level.tracksTime && (
+                {showClock && (
                   <div className="tnum text-xs text-emerald-200/45">
                     {(elapsed / 1000).toFixed(2)}s
                     {results.length > 1 &&

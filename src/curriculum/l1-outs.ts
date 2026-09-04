@@ -12,9 +12,9 @@ import { HandCategory, evaluate } from '../engine/evaluator';
 import { equityVsHand } from '../engine/equity';
 import { analyzeOuts, hitProbability, ruleOf2and4, ruleOf2and4Adjusted } from '../engine/odds';
 import { ErrorTag } from '../coach/mistakes';
+import { cfg } from '../coach/profile';
 import { Drill, DrillAnswers, DrillFeedback, LevelModule, ProofLine } from './types';
 
-const EQUITY_TOLERANCE = 5; // percentage points
 
 interface Spot {
   hero: Card[];
@@ -108,7 +108,7 @@ function build(index: number, seed: string): Drill {
         unit: 'outs',
         min: 0,
         max: 25,
-        tolerance: 0,
+        tolerance: cfg().outsTolerance,
         hint: 'Count cards that WIN the hand, not cards that merely improve you.',
       },
       {
@@ -118,15 +118,17 @@ function build(index: number, seed: string): Drill {
         unit: '%',
         min: 0,
         max: 100,
-        tolerance: EQUITY_TOLERANCE,
+        tolerance: cfg().equityTolerance,
         hint: `Rule of ${cardsToCome === 2 ? '4' : '2'}: outs x ${cardsToCome === 2 ? 4 : 2}.`,
       },
     ],
     grade(answers: DrillAnswers): DrillFeedback {
       const givenOuts = Number(answers['outs']);
       const givenEq = Number(answers['equity']);
-      const outsCorrect = Number.isFinite(givenOuts) && givenOuts === outs;
-      const eqCorrect = Number.isFinite(givenEq) && Math.abs(givenEq - equityPct) <= EQUITY_TOLERANCE;
+      const outsTol = cfg().outsTolerance;
+      const eqTol = cfg().equityTolerance;
+      const outsCorrect = Number.isFinite(givenOuts) && Math.abs(givenOuts - outs) <= outsTol;
+      const eqCorrect = Number.isFinite(givenEq) && Math.abs(givenEq - equityPct) <= eqTol;
       const correct = outsCorrect && eqCorrect;
 
       const tags: ErrorTag[] = [];
@@ -213,7 +215,7 @@ function build(index: number, seed: string): Drill {
       if (!eqCorrect) {
         parts.push(
           `You said ${givenEq.toFixed(0)}%; it is ${equityPct.toFixed(1)}%. ` +
-            `You were allowed ${EQUITY_TOLERANCE} points either side.`,
+            `You were allowed ${eqTol} points either side.`,
         );
       }
       if (parts.length === 0) {
@@ -232,7 +234,7 @@ function build(index: number, seed: string): Drill {
             correct: eqCorrect,
             given: `${Number.isFinite(givenEq) ? givenEq.toFixed(0) : '?'}%`,
             expected: `${equityPct.toFixed(1)}%`,
-            detail: `+/- ${EQUITY_TOLERANCE} points accepted`,
+            detail: `+/- ${eqTol} points accepted`,
           },
         ],
         correctAction: `${outs} outs, ${equityPct.toFixed(1)}% equity`,

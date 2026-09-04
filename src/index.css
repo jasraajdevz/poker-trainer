@@ -111,3 +111,19 @@ body {
   .disco-confetti { opacity: 0.5; }
   .disco-letter { color: #ffe14d; }
 }
+
+/* Star burst behind a correct answer. */
+@keyframes burst {
+  0%   { transform: translate(0, 0) scale(0.3); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translate(var(--bx), var(--by)) scale(1); opacity: 0; }
+}
+.burst { animation: burst 900ms ease-out forwards; }
+
+@keyframes pop { 0% { transform: scale(0.9); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.pop { animation: pop 220ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .burst, .pop { animation: none; }
+  .burst { opacity: 0; }
+}

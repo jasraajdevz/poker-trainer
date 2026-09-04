@@ -12,10 +12,40 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 312 tests
+npm test        # 331 tests
 npm run build   # production bundle
 npm run deploy  # publish to GitHub Pages
 ```
+
+## Two ways in
+
+The first screen asks who is playing.
+
+**Kids** — the same engine, the same maths, the gambling stripped out. Chips are
+stars and nothing is ever money. Marking is kinder (60% to pass, outs may be off
+by one, equity by ten points), hints are on, there is no clock, and every good
+answer is a moment. The levels get plain-English names: *Who wins?*, *Counting
+cards*, *Is it worth it?*
+
+**Adults** — poker as poker. Chips, pots, EV in big blinds, 80% to pass, exact
+outs, timed reads.
+
+Switch any time from the chip in the header. Kid mode is not a watered-down
+version: a ten year old counting outs is running exactly the same hypergeometric
+arithmetic an adult is.
+
+## Feeling like progress
+
+- **Quick play** on the home screen deals you a real hand against the bots
+  immediately — no unlock, nothing scored, coach on. Play first, study later.
+- **XP and ranks**, seven of them, named per mode: Card Cub → Card Myth for kids,
+  Novice → Nemesis for adults.
+- **Streaks** that build, with a note that climbs a semitone each time.
+- **Twelve badges**, every one decided by looking at what actually happened —
+  eight showdowns read in a row, a median read under three seconds, a level
+  finished without a mistake, a Boss Fight won.
+- Small synthesised sounds. "Wrong" is a soft low thud, never a buzzer: being
+  told off repeatedly is how people quit.
 
 ## The rule
 

@@ -22,6 +22,14 @@ import {
   loadParty, loadPoints, msUntilNextChange, partyFromHash, savePoints, saveParty,
 } from '../coach/party';
 import { discoBeat } from '../audio/discoBeat';
+import { sfx } from '../audio/sfx';
+import {
+  BADGES, BadgeDef, Mode, RankState, earnedBadges, loadBestStreak, loadMode, loadSeenBadges,
+  loadXp, newlyEarned, rankFor, saveBestStreak, saveSeenBadges, saveXp, setMode as persistMode,
+  cfg,
+} from '../coach/profile';
+import { Onboarding } from './views/Onboarding';
+import { BadgeToast, RankUpToast } from './components/Celebrate';
 import {
   BANNER_HEIGHT, DiscoBanner, DiscoBar, DiscoOverlay, useDiscoPulse,
 } from './components/DiscoMode';
@@ -38,6 +46,7 @@ type View =
   | { k: 'home' }
   | { k: 'level'; id: LevelId }
   | { k: 'hands' }
+  | { k: 'casual' }
   | { k: 'dojo' }
   | { k: 'pack'; level: LevelModule; boss?: ErrorTag }
   | { k: 'lab' }
@@ -50,6 +59,33 @@ export function App() {
   const [modal, setModal] = useState(false);
   const [bossLabel, setBossLabel] = useState<string | undefined>();
   const [name, setName] = useState(() => loadName());
+  const [mode, setModeState] = useState<Mode | null>(() => loadMode());
+  const [xp, setXp] = useState(() => loadXp());
+  const [bestStreak, setBestStreak] = useState(() => loadBestStreak());
+  const [seenBadges, setSeenBadges] = useState<string[]>(() => loadSeenBadges());
+  const [badgeToast, setBadgeToast] = useState<BadgeDef | null>(null);
+  const [rankToast, setRankToast] = useState<RankState | null>(null);
+
+  // The active mode is a module-level setting the level modules read for their
+  // tolerances, so keep it in step with React state.
+  useEffect(() => { if (mode) persistMode(mode); }, [mode]);
+  useEffect(() => { saveXp(xp); }, [xp]);
+  useEffect(() => { saveBestStreak(bestStreak); }, [bestStreak]);
+
+  const onScored = useCallback((gain: number, streak: number) => {
+    if (gain > 0) {
+      setXp((n) => {
+        const next = n + gain;
+        // Crossing a threshold is a moment, so announce it.
+        if (rankFor(next).index > rankFor(n).index) {
+          setRankToast(rankFor(next));
+          sfx.levelUp();
+        }
+        return next;
+      });
+    }
+    setBestStreak((b) => Math.max(b, streak));
+  }, []);
   const [sharing, setSharing] = useState<SharedScore | null>(null);
   const [incoming, setIncoming] = useState<DecodedScore | null>(
     () => (typeof location === 'undefined' ? null : scoreFromHash(location.hash)),
@@ -197,6 +233,28 @@ export function App() {
     setView({ k: 'level', id });
   }, []);
 
+  const badges = useMemo(
+    () => earnedBadges(progress, {
+      xp, bestStreak, birthdayPoints: points,
+      bossesCleared: progress.mistakes.filter((m) => m.retired).length,
+    }),
+    [progress, xp, bestStreak, points],
+  );
+
+  // A badge becoming true is worth a fuss, but only the first time.
+  useEffect(() => {
+    const fresh = newlyEarned(seenBadges, badges);
+    if (fresh.length === 0) return;
+    const def = BADGES.find((b) => b.id === fresh[0]);
+    if (def) { setBadgeToast(def); sfx.badge(); }
+    setSeenBadges(badges);
+    saveSeenBadges(badges);
+  }, [badges, seenBadges]);
+
+  if (!mode) {
+    return <Onboarding onPick={(m) => { persistMode(m); setModeState(m); }} />;
+  }
+
   if (incoming) {
     return (
       <SharedScoreView
@@ -219,7 +277,14 @@ export function App() {
       case 'home':
         return (
           <Home
-            progress={progress} pro={pro} onPick={pick}
+            progress={progress}
+            pro={pro}
+            mode={mode!}
+            xp={xp}
+            badges={badges}
+            onPlay={() => setView({ k: 'casual' })}
+            onMode={() => setModeState(mode === 'kid' ? 'adult' : 'kid')}
+            onPick={pick}
             onDojo={() => setView({ k: 'dojo' })}
             onLab={() => setView({ k: 'lab' })}
             onUpgrade={() => setModal(true)}
@@ -235,15 +300,18 @@ export function App() {
         if (!level) return null;
         return (
           <LevelView
-            key={view.id} level={level} pro={pro}
+            key={view.id} level={level} pro={pro} mode={mode!} onScored={onScored}
             timeTrend={timeTrend(progress, view.id)}
             onResult={onResult}
-            onFinish={() => setProgress((p) => finishAttempt(p, view.id, level.drillCount))}
+            onFinish={() => setProgress((p) => finishAttempt(p, view.id, level.drillCount, cfg().passMark))}
             onShare={(c, t, ms) => shareRun(view.id, level.title, c, t, ms)}
             onExit={home}
           />
         );
       }
+
+      case 'casual':
+        return <HandPlayView pro={pro} casual onShare={() => undefined} onExit={home} />;
 
       case 'hands':
         return (
@@ -265,7 +333,8 @@ export function App() {
       case 'pack':
         return (
           <LevelView
-            key={view.level.title} level={view.level} pro={pro} timeTrend={[]}
+            key={view.level.title} level={view.level} pro={pro} mode={mode!}
+            onScored={onScored} timeTrend={[]}
             bossLabel={bossLabel}
             onResult={onResult}
             onFinish={(correct, total) => {
@@ -347,6 +416,12 @@ export function App() {
             home();
           }}
         />
+      )}
+      {badgeToast && (
+        <BadgeToast badge={badgeToast} mode={mode} onDone={() => setBadgeToast(null)} />
+      )}
+      {rankToast && (
+        <RankUpToast state={rankToast} mode={mode} onDone={() => setRankToast(null)} />
       )}
       {view.k !== 'home' && !partyOn && (
         <button

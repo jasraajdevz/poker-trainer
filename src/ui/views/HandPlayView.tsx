@@ -48,9 +48,11 @@ const HERO_SEATS: Position[] = ['BTN', 'CO', 'SB', 'HJ', 'BB', 'UTG', 'BTN', 'CO
 const CAST: ArchetypeId[] = ['tag', 'station', 'nit', 'tag', 'station'];
 
 export function HandPlayView({
-  pro, onShare, onExit,
+  pro, casual = false, onShare, onExit,
 }: {
   pro: boolean;
+  /** Front-door play: coach always on, nothing scored, play as long as you like. */
+  casual?: boolean;
   onShare: (correct: number, total: number) => void;
   onExit: () => void;
 }) {
@@ -63,7 +65,8 @@ export function HandPlayView({
   const [scores, setScores] = useState<Array<{ net: number; evLost: number; coached: boolean }>>([]);
   const [raiseOpen, setRaiseOpen] = useState(false);
 
-  const coached = handNo < L8_COACHED_HANDS;
+  const coached = casual || handNo < L8_COACHED_HANDS;
+  const totalHands = casual ? Infinity : HANDS;
   const heroSeat = HERO_SEATS[handNo % HERO_SEATS.length]!;
   const heroId = useMemo(
     () => ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'].indexOf(heroSeat),
@@ -80,7 +83,7 @@ export function HandPlayView({
     setRaiseOpen(false);
   }, [heroSeat, heroId, seed, handNo, pro]);
 
-  useEffect(() => { if (handNo < HANDS) deal(); }, [deal, handNo]);
+  useEffect(() => { if (handNo < totalHands) deal(); }, [deal, handNo, totalHands]);
 
   const oppInfo = useCallback((s: HandState) => {
     const opp = s.seats.find((x) => !x.isHero && !x.folded) ?? s.seats.find((x) => !x.isHero)!;
@@ -202,7 +205,7 @@ export function HandPlayView({
     return () => window.removeEventListener('keydown', onKey);
   }, [state, heroId, act, raiseOpen, coached, showHint, onExit]);
 
-  if (handNo >= HANDS) {
+  if (handNo >= totalHands) {
     const scored = scores.filter((s) => !s.coached);
     const net = scored.reduce((n, s) => n + s.net, 0);
     const lost = scored.reduce((n, s) => n + s.evLost, 0);
@@ -238,9 +241,11 @@ export function HandPlayView({
       <header className="mb-4 flex items-center justify-between">
         <button onClick={onExit} className="text-xs text-emerald-300/60 hover:text-emerald-200">← Exit</button>
         <div className="flex items-center gap-4 text-xs">
-          <span className="text-emerald-200/50">Hand {handNo + 1} / {HANDS}</span>
+          <span className="text-emerald-200/50">
+            Hand {handNo + 1}{casual ? '' : ` / ${HANDS}`}
+          </span>
           <span className={coached ? 'text-emerald-300' : 'text-amber-300'}>
-            {coached ? 'Coach mode ON' : 'Scored — coach off'}
+            {casual ? 'Practice — nothing scored' : coached ? 'Coach mode ON' : 'Scored — coach off'}
           </span>
           <span className="text-emerald-200/50">You are {heroSeat}</span>
         </div>
