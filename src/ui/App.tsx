@@ -42,6 +42,7 @@ import { LevelView } from './views/LevelView';
 import { DojoView } from './views/DojoView';
 import { HandPlayView } from './views/HandPlayView';
 import { LabView } from './views/LabView';
+import { TutorialView } from './views/TutorialView';
 import { LeaderboardView } from './views/LeaderboardView';
 import { UpgradeModal } from './components/Upgrade';
 import { ShareModal, SharedScoreView } from './components/Share';
@@ -51,6 +52,7 @@ type View =
   | { k: 'level'; id: LevelId }
   | { k: 'hands' }
   | { k: 'casual' }
+  | { k: 'tutorial' }
   | { k: 'dojo' }
   | { k: 'pack'; level: LevelModule; boss?: ErrorTag }
   | { k: 'lab' }
@@ -299,6 +301,9 @@ export function App() {
 
   if (incoming) {
     return (
+      <>
+      <Ambient />
+      <div className="relative z-10">
       <SharedScoreView
         theirs={incoming.score}
         yours={me}
@@ -314,6 +319,8 @@ export function App() {
         }}
         onDismiss={dismissIncoming}
       />
+      </div>
+      </>
     );
   }
 
@@ -328,6 +335,7 @@ export function App() {
             xp={xp}
             badges={badges}
             onPlay={() => setView({ k: 'casual' })}
+            onTutorial={() => setView({ k: 'tutorial' })}
             onMode={() => setSettingsOpen(true)}
             onPick={pick}
             onDojo={() => setView({ k: 'dojo' })}
@@ -345,7 +353,8 @@ export function App() {
         if (!level) return null;
         return (
           <LevelView
-            key={view.id} level={level} pro={pro} mode={mode!} onScored={onScored}
+            key={view.id} level={level} pro={pro} mode={mode!} showTimer={settings.timer}
+            onScored={onScored}
             timeTrend={timeTrend(progress, view.id)}
             onResult={onResult}
             onFinish={() => setProgress((p) => finishAttempt(p, view.id, level.drillCount, cfg().passMark))}
@@ -354,6 +363,16 @@ export function App() {
           />
         );
       }
+
+      case 'tutorial':
+        return (
+          <TutorialView
+            mode={mode}
+            onPlay={() => setView({ k: 'casual' })}
+            onLearn={() => pick('L0')}
+            onExit={home}
+          />
+        );
 
       case 'casual':
         return (
@@ -390,7 +409,7 @@ export function App() {
         return (
           <LevelView
             key={view.level.title} level={view.level} pro={pro} mode={mode!}
-            onScored={onScored} timeTrend={[]}
+            showTimer={settings.timer} onScored={onScored} timeTrend={[]}
             bossLabel={bossLabel}
             onResult={onResult}
             onFinish={(correct, total) => {

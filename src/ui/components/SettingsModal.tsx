@@ -132,6 +132,20 @@ export function SettingsModal({
             </p>
           </Row>
 
+          <Row label="Timer">
+            <Segmented
+              value={settings.timer ? 'show' : 'hide'}
+              options={[
+                { key: 'hide', label: 'Hidden' },
+                { key: 'show', label: 'Shown' },
+              ]}
+              onPick={(k) => update({ timer: k === 'show' })}
+            />
+            <p className="mt-1.5 text-[11px] text-emerald-200/45">
+              Nothing is ever timed against you. The clock is information for people who want it.
+            </p>
+          </Row>
+
           <Row label="Sounds">
             <Segmented
               value={settings.sound ? 'on' : 'off'}

@@ -220,7 +220,7 @@ export const L0: LevelModule = {
       'Every hand you will ever hold is one of nine shapes. From the top: straight flush, four of a kind, full house, flush, straight, three of a kind, two pair, one pair, high card.',
       'You get seven cards — your two plus the five on the board — and you play the best five of them. Your other two simply vanish. That is why the board sometimes wins for everybody.',
       'When two players land in the same shape, you compare the thing that names it first: the pair, then the trips, then the top of the run. If those match, you keep reading across to the kickers.',
-      'Speed matters more than you think. This level times you, because at the table you want the read to be automatic, not calculated.',
+      'Speed comes with practice, and the app quietly notices your reads getting faster — never as a score, just so you can watch yourself improve. A visible clock is in settings if you ever want one.',
     ],
     terms: [
       { term: 'Kicker', definition: 'A card that is not part of your pair or trips but still breaks ties.' },

@@ -315,3 +315,28 @@ reverse; say the word on any of them.
 85. **The gear lives top-right under the Omega pill**, because every view's exit
     control owns the top-left corner, and both hide during a party so the
     birthday banner is never painted over.
+
+## Mobile, tutorial, PWA, and the end of the clock
+
+86. **The "weird scrolly" glitch was `background-attachment: fixed`.** iOS
+    Safari fakes it and the felt smears while scrolling. The gradient now lives
+    on a genuinely fixed layer inside Ambient, and body is a solid colour.
+87. **Installable and offline.** Manifest + hand-written service worker:
+    network-first shell (new deploys always win online), cache-first hashed
+    assets, install-time precache so one visit is enough to play offline.
+88. **The service worker must never touch caches outside its own prefix.**
+    Cache Storage is origin-scoped and github.io user pages share one origin
+    across every project site — an unscoped cleanup would have deleted sibling
+    apps' caches. Caught by the review workflow before it ever deployed.
+89. **The clock is opt-in for everyone, default off.** Times are still recorded
+    silently for the trend and the Lightning badge, but nothing is ever timed
+    against the player. The dead `timed` mode flag was deleted rather than left
+    to mislead.
+90. **The tutorial asks the evaluator for its own examples.** The hand-ladder
+    names and the showdown winner on the tour pages are computed live, so the
+    tutorial cannot drift out of agreement with the game.
+91. **A second review workflow (12 agents) ran on this change set; all 10
+    confirmed findings were fixed** — four service-worker defects, the inert
+    iOS anti-zoom rule, three kid-vocabulary leaks the tutorial itself exposed,
+    a stale onboarding promise, and the tutorial re-arming the one-shot
+    greeting.

@@ -79,7 +79,7 @@ export function Onboarding({ onPick }: { onPick: (m: Mode) => void }) {
           points={[
             "No-Limit Hold'em, 6-max, 100bb",
             'Chips, pots, EV in big blinds',
-            'Strict marking and timed reads',
+            'Strict marking, hints off',
           ]}
           cta="Take a seat →"
         />

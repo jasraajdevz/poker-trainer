@@ -1,0 +1,14 @@
+{
+  "name": "Poker Trainer",
+  "short_name": "PokerTrainer",
+  "description": "A card game coach where every number is computed. Kids and adults modes.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#04140f",
+  "theme_color": "#04140f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

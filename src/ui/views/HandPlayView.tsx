@@ -330,7 +330,9 @@ export function HandPlayView({
       {heroTurn && (
         <div className="panel p-4">
           <div className="mb-3 text-sm text-emerald-100">
-            {legal.callAmount > 0 ? `${legal.callAmount} to call` : 'Checked to you'}
+            {legal.callAmount > 0
+              ? (kid ? `${legal.callAmount} to stay in` : `${legal.callAmount} to call`)
+              : 'Checked to you'}
             {hero.cards.length > 0 && state.board.length >= 3 && (
               <span className="ml-3 text-emerald-200/50">
                 You have {evaluate([...hero.cards, ...state.board]).name}
@@ -343,7 +345,11 @@ export function HandPlayView({
             )}
             <Btn
               hotkey="c"
-              label={legal.canCheck ? 'Check' : `Call ${legal.callAmount}`}
+              label={
+                legal.canCheck
+                  ? 'Check'
+                  : kid ? `Stay in ${legal.callAmount}` : `Call ${legal.callAmount}`
+              }
               onClick={() => act(legal.canCheck ? { type: 'check' } : { type: 'call' })}
             />
             {legal.canRaise && (

@@ -12,10 +12,13 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 336 tests
+npm test        # 338 tests
 npm run build   # production bundle
 npm run deploy  # publish to GitHub Pages
 ```
+
+**Full specification: [SPECS.md](SPECS.md)** — every feature, every number,
+every model, and the honesty guarantees behind them.
 
 ## What it looks like, and what it's made of
 

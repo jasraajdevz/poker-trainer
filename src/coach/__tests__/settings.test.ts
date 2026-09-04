@@ -18,6 +18,8 @@ describe('table settings', () => {
     expect(s).toEqual(DEFAULT_SETTINGS);
     expect(s.theme).toBe('emerald');
     expect(s.sound).toBe(true);
+    // No time pressure out of the box: the clock is opt-in.
+    expect(s.timer).toBe(false);
   });
 
   it('card style is a module setting the leaf component can read', () => {
@@ -36,7 +38,7 @@ describe('table settings', () => {
     // The settings module must not import from the engine.
     // (A structural guard: its public surface is colours, styles and flags.)
     for (const key of Object.keys(DEFAULT_SETTINGS)) {
-      expect(['theme', 'cardStyle', 'motion', 'sound']).toContain(key);
+      expect(['theme', 'cardStyle', 'motion', 'sound', 'timer']).toContain(key);
     }
   });
 });

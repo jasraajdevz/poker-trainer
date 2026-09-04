@@ -38,8 +38,6 @@ export interface ModeConfig {
   priceTolerance: number;
   /** Show the working before you answer. */
   hintsByDefault: boolean;
-  /** Put a clock on it. */
-  timed: boolean;
   /** Loud praise, or a quiet tick. */
   celebration: 'big' | 'calm';
 }
@@ -51,7 +49,6 @@ export const MODE_CONFIG: Record<Mode, ModeConfig> = {
     equityTolerance: 10,
     priceTolerance: 5,
     hintsByDefault: true,
-    timed: false,
     celebration: 'big',
   },
   adult: {
@@ -60,7 +57,6 @@ export const MODE_CONFIG: Record<Mode, ModeConfig> = {
     equityTolerance: 5,
     priceTolerance: 2,
     hintsByDefault: false,
-    timed: true,
     celebration: 'calm',
   },
 };

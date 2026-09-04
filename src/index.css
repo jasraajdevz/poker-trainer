@@ -30,14 +30,27 @@
   --glow: 192, 132, 252;
 }
 
+html {
+  /* No pull-to-refresh surprises, no rubber-band smear behind the table. */
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
-  background:
-    radial-gradient(1200px 700px at 50% -10%, var(--felt-a) 0%, var(--felt-b) 45%, var(--felt-c) 100%);
-  background-attachment: fixed;
+  /* The felt gradient lives on the fixed Ambient layer, NOT here with
+     background-attachment: fixed — iOS Safari fakes fixed attachment and the
+     table visibly smears and repaints while you scroll. Solid base colour
+     here; the gradient scrolls with nothing because its layer is truly fixed. */
+  background: var(--felt-c);
   color: #e7f0ec;
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+  /* Breathing room for notches and home indicators. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* Numbers should never jitter as they update. */
@@ -166,6 +179,10 @@ body {
   50%  { transform: translate(3vw, -4vh) rotate(5deg); }
   100% { transform: translate(0, 0) rotate(-6deg); }
 }
+.felt-backdrop {
+  background: radial-gradient(1200px 700px at 50% -10%, var(--felt-a) 0%, var(--felt-b) 45%, var(--felt-c) 100%);
+}
+
 .ambient-spot {
   background: radial-gradient(55% 40% at 50% 8%, rgba(var(--glow), 0.10), transparent 70%);
   animation: ambient-breathe 9s ease-in-out infinite;
@@ -279,4 +296,16 @@ body {
   .deal, .card-float, .fan-card, .title-shine, .ambient-spot, .ambient-suit { animation: none; }
   .title-shine { background: none; -webkit-text-fill-color: currentColor; color: #e7f0ec; }
   .fan-card { opacity: 1; }
+}
+
+
+/* ---------------------------------------------------------------------------
+   Touch. Keyboard hints mean nothing to a thumb; sub-16px inputs make iOS
+   zoom-jump the whole page on focus.
+   --------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  .kbd { display: none; }
+  /* !important because Tailwind text-* utilities out-specify a bare element
+     selector, and a sub-16px input makes iOS zoom-jump the page on focus. */
+  input, select, textarea { font-size: 16px !important; }
 }

@@ -12,7 +12,7 @@ import { BadgeShelf, RankBar } from '../components/Celebrate';
 
 export function Home({
   progress, pro, mode, xp, badges, boardCount,
-  onPick, onPlay, onDojo, onLab, onUpgrade, onShare, onBoard, onMode, onReset,
+  onPick, onPlay, onTutorial, onDojo, onLab, onUpgrade, onShare, onBoard, onMode, onReset,
 }: {
   progress: Progress;
   pro: boolean;
@@ -22,6 +22,7 @@ export function Home({
   boardCount: number;
   onPick: (id: LevelId) => void;
   onPlay: () => void;
+  onTutorial: () => void;
   onDojo: () => void;
   onLab: () => void;
   onUpgrade: () => void;
@@ -135,6 +136,27 @@ export function Home({
           </button>
         </div>
       </div>
+
+      <button
+        onClick={onTutorial}
+        className={`panel mt-3 flex w-full items-center gap-3 px-4 py-3 text-left transition
+                    hover:border-emerald-400/60 hover:bg-emerald-500/5 ${
+          answered === 0 ? 'border-emerald-400/50' : ''
+        }`}
+      >
+        <span className="text-2xl">🎓</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-emerald-50">
+            {answered === 0
+              ? (kid ? 'Never played? Start here' : 'Never played poker? Start here')
+              : (kid ? 'How the game works' : 'How poker works')}
+          </span>
+          <span className="block text-xs text-emerald-200/55">
+            The whole game in a two-minute tour — no clock, no score
+          </span>
+        </span>
+        <span className="text-emerald-300/50">→</span>
+      </button>
 
       {answered > 0 && (
         <div className="panel mt-4 grid grid-cols-2 gap-px overflow-hidden bg-emerald-900/40 sm:grid-cols-4">

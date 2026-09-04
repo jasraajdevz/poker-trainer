@@ -14,6 +14,8 @@ interface Props {
   timeTrend: number[];
   pro: boolean;
   mode: Mode;
+  /** Show the clock. Timing is still recorded quietly either way. */
+  showTimer: boolean;
   /** Report XP earned and the streak it landed on. */
   onScored: (xp: number, streak: number) => void;
   /** Extra copy shown on the summary, e.g. a Boss Fight verdict. */
@@ -25,12 +27,13 @@ interface Props {
 }
 
 export function LevelView({
-  level, timeTrend, pro, mode, bossLabel, onScored, onResult, onFinish, onShare, onExit,
+  level, timeTrend, pro, mode, showTimer, bossLabel, onScored, onResult, onFinish, onShare, onExit,
 }: Props) {
   const PASS = cfg().passMark;
   const label = levelLabel(level.id, level.title, level.subtitle, mode);
-  // Kid mode still records times for the trend, it just never shows a clock.
-  const showClock = !!level.tracksTime && cfg().timed;
+  // Times are always recorded for the trend and the Lightning badge; the
+  // clock is only DRAWN when the player asked for it in settings.
+  const showClock = !!level.tracksTime && showTimer;
   const [streak, setStreak] = useState(0);
   const [gained, setGained] = useState(0);
   const [attemptSeed, setAttemptSeed] = useState(() => `a${Date.now()}`);

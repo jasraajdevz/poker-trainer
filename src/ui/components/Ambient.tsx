@@ -12,6 +12,7 @@ export function Ambient() {
   ];
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
+      <div className="felt-backdrop absolute inset-0" />
       <div className="ambient-spot absolute inset-0" />
       {suits.map((s, i) => (
         <span key={i} className="ambient-suit absolute font-serif" style={s.style}>

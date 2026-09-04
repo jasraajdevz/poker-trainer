@@ -34,8 +34,7 @@ describe('the two modes', () => {
     expect(k.equityTolerance).toBeGreaterThan(a.equityTolerance);
     expect(k.priceTolerance).toBeGreaterThan(a.priceTolerance);
     expect(k.hintsByDefault).toBe(true);
-    expect(k.timed).toBe(false);
-    expect(a.timed).toBe(true);
+    expect(a.hintsByDefault).toBe(false);
   });
 
   it('switches the active config', () => {

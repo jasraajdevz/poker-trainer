@@ -15,6 +15,12 @@ export interface Settings {
   cardStyle: CardStyle;
   motion: MotionLevel;
   sound: boolean;
+  /**
+   * Show the clock during drills. OFF by default: speed is recorded quietly
+   * for the trend and the Lightning badge, but it is information, never a
+   * score — nothing in the app ever fails you for being slow.
+   */
+  timer: boolean;
 }
 
 export interface ThemeDef {
@@ -37,6 +43,7 @@ export const DEFAULT_SETTINGS: Settings = {
   cardStyle: 'four',
   motion: 'full',
   sound: true,
+  timer: false,
 };
 
 const KEY = 'poker-trainer:settings';
@@ -52,6 +59,7 @@ export function loadSettings(): Settings {
       cardStyle: p.cardStyle === 'classic' ? 'classic' : 'four',
       motion: p.motion === 'calm' ? 'calm' : 'full',
       sound: p.sound !== false,
+      timer: p.timer === true,
     };
   } catch {
     return DEFAULT_SETTINGS;
