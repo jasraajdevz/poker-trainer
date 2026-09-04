@@ -2,6 +2,7 @@ import { LEVELS } from '../../curriculum/registry';
 import { LevelId } from '../../curriculum/types';
 import { Progress, isUnlocked, levelProgress } from '../../coach/progress';
 import { activeLeaks } from '../../coach/dojo';
+import { tagLabel } from '../../coach/mistakes';
 import { Mode, cfg, levelLabel, rankFor, terms } from '../../coach/profile';
 import { openingPercent, openingRange, QUOTED_PERCENT } from '../../engine/preflopChart';
 import { CellMark, GridLegend, RangeGrid } from '../components/RangeGrid';
@@ -63,9 +64,9 @@ export function Home({
           <button
             onClick={onMode}
             className="btn-ghost text-xs"
-            title="Switch between kids and adults"
+            title="Settings — mode, felt, deck, sounds"
           >
-            {kid ? '⭐ Kids' : '♠ Adults'}
+            ⚙ {kid ? 'Kids' : 'Adults'}
           </button>
           {answered > 0 && <ShareButton onClick={onShare} label="Share" />}
           <UpgradeButton pro={pro} onClick={onUpgrade} />
@@ -112,7 +113,7 @@ export function Home({
             </div>
             <span className="mt-0.5 block text-xs text-emerald-200/55">
               {leaks.length
-                ? `${leaks[0]!.label}${kid ? '' : ` · ${leaks[0]!.bbPer100.toFixed(1)} bb/100`}`
+                ? `${tagLabel(leaks[0]!.tag, kid)}${kid ? '' : ` · ${leaks[0]!.bbPer100.toFixed(1)} bb/100`}`
                 : kid ? 'Play a bit and this fills up' : 'Answer some drills and your leaks show up here'}
             </span>
           </button>

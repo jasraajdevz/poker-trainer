@@ -18,7 +18,7 @@ import { Position, openingRange, openingPercent } from '../engine/preflopChart';
 import { potOdds, impliedOddsNeeded } from '../engine/odds';
 import { evCall, evFold } from '../engine/ev';
 import { ErrorTag } from '../coach/mistakes';
-import { cfg } from '../coach/profile';
+import { cfg, getMode } from '../coach/profile';
 import { Drill, DrillAnswers, DrillFeedback, LevelModule, ProofLine } from './types';
 
 const BIG_BLIND = 10;
@@ -134,15 +134,21 @@ function build(index: number, seed: string): Drill {
       villainRangeText: `${seat} opening range (${openingPercent(seat).toFixed(0)}%), strongest ${Math.round(
         spot.keep * 100,
       )}% on this board — ${combos.length} combos`,
-      caption: `Villain bets ${bet} into ${potBefore}. It is ${bet} to you.`,
+      caption: getMode() === 'kid'
+        ? `The other player adds ${bet} to a pile of ${potBefore}. It is ${bet} to you.`
+        : `Villain bets ${bet} into ${potBefore}. It is ${bet} to you.`,
     },
     facts: [
       { label: 'Pot before the bet', value: `${potBefore}` },
-      { label: 'Villain bets', value: `${bet}`, note: betFracText },
+      { label: getMode() === 'kid' ? 'They add' : 'Villain bets', value: `${bet}`, note: betFracText },
       { label: 'Pot now', value: `${pot}`, key: true },
       { label: 'To call', value: `${bet}` },
       { label: 'You hold', value: heroRead.name },
-      { label: 'Villain range', value: `${combos.length} combos`, note: 'shown on the table — a model, not a read' },
+      {
+        label: getMode() === 'kid' ? 'Their possible hands' : 'Villain range',
+        value: `${combos.length} combos`,
+        note: 'shown on the table — a model, not a read',
+      },
     ],
     steps: [
       {

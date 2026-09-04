@@ -284,3 +284,34 @@ reverse; say the word on any of them.
     anything the ranks were spaced for.
 78. **"Wrong" is a soft low thud.** A buzzer on every miss trains people to stop
     playing, which is the opposite of what a trainer is for.
+
+## The graphics pass
+
+79. **No media files, ever.** Cards, felt, light, celebration and music are all
+    code. Nothing to license, nothing unvetted on screen, and the whole app
+    stays a few hundred KB.
+80. **The first thirty seconds now deals cards.** The intro fans a royal flush
+    out of the deck, the title catches the light, and whichever door you pick
+    drops you straight into a live dealt hand with a two-line welcome — play
+    before study, within ten seconds.
+81. **Themes are CSS custom properties on <html>.** Four felts recolour the
+    entire app — panels, ambient light, card backs — without a re-render, and
+    the settings module is structurally unable to touch a computed number.
+82. **Calm mode is a first-class setting, not just a media query.** It mirrors
+    prefers-reduced-motion exactly, so the loud version and the still version
+    are the same app.
+83. **The deck preview in settings is painted by hand** with each deck's exact
+    colour classes, because the real card component reads the live module
+    setting and a preview must show the option you have not chosen.
+
+84. **A 21-agent review ran before this shipped, and 17 findings survived
+    adversarial verification.** The worst: the reset dialog promised to wipe XP
+    and badges but only wiped progress; the new settings gear sat exactly on top
+    of every view's Exit button on phones; a saved non-emerald theme flashed
+    green on every boot; the card backs were accidentally 14% transparent via a
+    color-mix normalisation rule; and five separate surfaces leaked adult poker
+    vocabulary into kid mode. All fixed, and the kid-vocabulary guard now covers
+    the 24 mistake-tag labels and fixes as a test, not an intention.
+85. **The gear lives top-right under the Omega pill**, because every view's exit
+    control owns the top-left corner, and both hide during a party so the
+    birthday banner is never painted over.

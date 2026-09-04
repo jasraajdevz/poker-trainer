@@ -4,6 +4,7 @@ import {
   earnedBadges, getMode, newlyEarned, praise, rankFor, rankName, setMode, terms, xpForDrill,
 } from '../profile';
 import { DrillResult, Progress, applyResult, emptyProgress, finishAttempt } from '../progress';
+import { TAGS, tagFix, tagLabel } from '../mistakes';
 import { L1 } from '../../curriculum/l1-outs';
 import { analyzeOuts } from '../../engine/odds';
 import { equityVsHand } from '../../engine/equity';
@@ -185,6 +186,30 @@ describe('badges', () => {
     expect(newlyEarned(['a'], ['a', 'b'])).toEqual(['b']);
     expect(newlyEarned(['a', 'b'], ['a', 'b'])).toEqual([]);
     expect(newlyEarned([], ['a'])).toEqual(['a']);
+  });
+});
+
+describe('kid copy for the mistake tags', () => {
+  const banned = /\b(money|cash|bet|bets|wager|gambl|stake|blind|bankroll|bluff)\b|\$/i;
+  const harsh = /\b(wrong|bad|fail|stupid|dumb|never learn)\b/i;
+
+  it('every tag has kid copy with no money, gambling or scolding words', () => {
+    for (const tag of Object.keys(TAGS) as Array<keyof typeof TAGS>) {
+      const info = TAGS[tag];
+      expect(info.kidLabel.length, tag).toBeGreaterThan(3);
+      expect(info.kidFix.length, tag).toBeGreaterThan(10);
+      expect(banned.test(info.kidLabel), `${tag} label: "${info.kidLabel}"`).toBe(false);
+      expect(banned.test(info.kidFix), `${tag} fix: "${info.kidFix}"`).toBe(false);
+      expect(harsh.test(info.kidLabel), `${tag} label: "${info.kidLabel}"`).toBe(false);
+      expect(harsh.test(info.kidFix), `${tag} fix: "${info.kidFix}"`).toBe(false);
+    }
+  });
+
+  it('accessors pick the right vocabulary per mode', () => {
+    expect(tagLabel('calls-without-odds', false)).toBe('Calls without the odds');
+    expect(tagLabel('calls-without-odds', true)).toBe('Pays when it is too pricey');
+    expect(tagFix('bluffs-into-calling-stations', true)).not.toMatch(/bluff/i);
+    expect(tagFix('bluffs-into-calling-stations', false)).toMatch(/bluff/i);
   });
 });
 

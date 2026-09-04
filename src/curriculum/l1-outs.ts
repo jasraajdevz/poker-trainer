@@ -12,7 +12,7 @@ import { HandCategory, evaluate } from '../engine/evaluator';
 import { equityVsHand } from '../engine/equity';
 import { analyzeOuts, hitProbability, ruleOf2and4, ruleOf2and4Adjusted } from '../engine/odds';
 import { ErrorTag } from '../coach/mistakes';
-import { cfg } from '../coach/profile';
+import { cfg, getMode } from '../coach/profile';
 import { Drill, DrillAnswers, DrillFeedback, LevelModule, ProofLine } from './types';
 
 
@@ -86,19 +86,19 @@ function build(index: number, seed: string): Drill {
     scene: {
       heroCards: hero,
       villainCards: villain,
-      villainLabel: 'Villain (face up)',
+      villainLabel: getMode() === 'kid' ? 'The other player (face up)' : 'Villain (face up)',
       board,
       street: plan.street,
       caption:
         plan.street === 'flop'
-          ? 'Two cards to come. Villain has turned their hand face up.'
-          : 'One card to come. Villain has turned their hand face up.',
+          ? `Two cards to come. ${getMode() === 'kid' ? 'The other player has' : 'Villain has'} turned their hand face up.`
+          : `One card to come. ${getMode() === 'kid' ? 'The other player has' : 'Villain has'} turned their hand face up.`,
     },
     facts: [
       { label: 'Street', value: plan.street === 'flop' ? 'Flop — 2 cards to come' : 'Turn — 1 card to come' },
       { label: 'Unseen cards', value: String(unseen) },
       { label: 'You hold', value: heroRead.name },
-      { label: 'Villain holds', value: villainRead.name, tone: 'bad' },
+      { label: getMode() === 'kid' ? 'They hold' : 'Villain holds', value: villainRead.name, tone: 'bad' },
     ],
     steps: [
       {

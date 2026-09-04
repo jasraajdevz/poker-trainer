@@ -6,10 +6,34 @@
   color-scheme: dark;
 }
 
+/* ---------------------------------------------------------------------------
+   Table themes. Stamped on <html> as data-theme; everything recolours via vars.
+   --------------------------------------------------------------------------- */
+:root, [data-theme='emerald'] {
+  --felt-a: #0e4531; --felt-b: #07231a; --felt-c: #04140f;
+  --line: rgba(6, 78, 59, 0.6);
+  --glow: 52, 211, 153;
+}
+[data-theme='midnight'] {
+  --felt-a: #14406b; --felt-b: #0a2140; --felt-c: #050d1a;
+  --line: rgba(30, 64, 120, 0.55);
+  --glow: 96, 165, 250;
+}
+[data-theme='crimson'] {
+  --felt-a: #5c1420; --felt-b: #330c14; --felt-c: #160507;
+  --line: rgba(120, 30, 45, 0.55);
+  --glow: 251, 113, 133;
+}
+[data-theme='royal'] {
+  --felt-a: #3b1a63; --felt-b: #22103a; --felt-c: #0e0618;
+  --line: rgba(88, 40, 150, 0.55);
+  --glow: 192, 132, 252;
+}
+
 body {
   margin: 0;
   background:
-    radial-gradient(1200px 700px at 50% -10%, #0e4531 0%, #07231a 45%, #04140f 100%);
+    radial-gradient(1200px 700px at 50% -10%, var(--felt-a) 0%, var(--felt-b) 45%, var(--felt-c) 100%);
   background-attachment: fixed;
   color: #e7f0ec;
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -21,7 +45,8 @@ body {
 
 @layer components {
   .panel {
-    @apply rounded-xl border border-emerald-900/60 bg-black/35 backdrop-blur-sm;
+    @apply rounded-xl bg-black/35 backdrop-blur-sm;
+    border: 1px solid var(--line);
   }
   .kbd {
     @apply inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded border
@@ -126,4 +151,132 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .burst, .pop { animation: none; }
   .burst { opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   Ambient table light. Fixed layers behind everything: a slow-breathing
+   spotlight, a vignette, and four huge suit glyphs drifting like smoke.
+   --------------------------------------------------------------------------- */
+@keyframes ambient-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.8;  transform: scale(1.06); }
+}
+@keyframes suit-drift {
+  0%   { transform: translate(0, 0) rotate(-6deg); }
+  50%  { transform: translate(3vw, -4vh) rotate(5deg); }
+  100% { transform: translate(0, 0) rotate(-6deg); }
+}
+.ambient-spot {
+  background: radial-gradient(55% 40% at 50% 8%, rgba(var(--glow), 0.10), transparent 70%);
+  animation: ambient-breathe 9s ease-in-out infinite;
+}
+.ambient-vignette {
+  background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
+}
+.ambient-suit {
+  color: rgba(var(--glow), 0.05);
+  filter: blur(2px);
+  animation: suit-drift 26s ease-in-out infinite;
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Cards. Dealt in with a snap, gentle float on the big ones, patterned backs.
+   --------------------------------------------------------------------------- */
+@keyframes deal-in {
+  from { transform: translateY(-26px) rotate(-5deg) scale(0.85); opacity: 0; }
+  60%  { transform: translateY(2px) rotate(1deg) scale(1.02); opacity: 1; }
+  to   { transform: none; opacity: 1; }
+}
+.deal { animation: deal-in 0.38s cubic-bezier(0.2, 0.8, 0.3, 1.15) both; }
+
+@keyframes card-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.card-float { animation: card-float 4s ease-in-out infinite; }
+
+.card-face {
+  background:
+    linear-gradient(155deg, #ffffff 0%, #f6f7f4 55%, #e9ebe4 100%);
+  box-shadow:
+    0 10px 22px -8px rgba(0, 0, 0, 0.65),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.card-back {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.07) 0 3px, transparent 3px 9px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.07) 0 3px, transparent 3px 9px),
+    linear-gradient(160deg, color-mix(in srgb, var(--felt-a) 93%, #fff) 0%, var(--felt-c) 100%);
+  box-shadow: 0 10px 22px -8px rgba(0, 0, 0, 0.65), inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+/* ---------------------------------------------------------------------------
+   The intro. A fan of cards, a title that catches the light, doors that tilt.
+   --------------------------------------------------------------------------- */
+@keyframes fan-in {
+  from { transform: translateY(30px) rotate(0deg) scale(0.6); opacity: 0; }
+  to   { transform: translateY(0) rotate(var(--fan-rot)) scale(1); opacity: 1; }
+}
+.fan-card {
+  transform-origin: 50% 130%;
+  animation: fan-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+  transform: rotate(var(--fan-rot));
+}
+@keyframes title-shine {
+  0%, 20% { background-position: -200% center; }
+  60%, 100% { background-position: 250% center; }
+}
+.title-shine {
+  background: linear-gradient(
+    100deg,
+    #e7f0ec 40%, #fff 48%, rgb(var(--glow)) 50%, #fff 52%, #e7f0ec 60%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: title-shine 5s ease-in-out infinite;
+}
+.door {
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+.door:hover {
+  transform: translateY(-4px) rotate(-0.5deg);
+  box-shadow: 0 24px 48px -16px rgba(var(--glow), 0.25);
+}
+
+/* Chip stack: three lozenges of table money, no images. */
+.chip {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.65), inset 0 0 0 4px rgba(0, 0, 0, 0.25),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  background: radial-gradient(circle at 35% 30%, #fca5a5, #b91c1c 70%);
+}
+.chip-b { background: radial-gradient(circle at 35% 30%, #93c5fd, #1d4ed8 70%); }
+.chip-c { background: radial-gradient(circle at 35% 30%, #fde68a, #b45309 70%); }
+
+/* ---------------------------------------------------------------------------
+   Calm mode: same look, none of the movement. Mirrors prefers-reduced-motion.
+   --------------------------------------------------------------------------- */
+[data-motion='calm'] .deal, [data-motion='calm'] .card-float,
+[data-motion='calm'] .fan-card, [data-motion='calm'] .title-shine,
+[data-motion='calm'] .ambient-spot, [data-motion='calm'] .ambient-suit,
+[data-motion='calm'] .burst, [data-motion='calm'] .pop, [data-motion='calm'] .rise,
+[data-motion='calm'] .disco-wash, [data-motion='calm'] .disco-confetti,
+[data-motion='calm'] .disco-marquee, [data-motion='calm'] .disco-letter,
+[data-motion='calm'] .disco-ball, [data-motion='calm'] .disco-beam,
+[data-motion='calm'] .disco-beam-2 {
+  animation: none;
+}
+[data-motion='calm'] .burst { opacity: 0; }
+[data-motion='calm'] .title-shine {
+  background: none; -webkit-text-fill-color: currentColor; color: #e7f0ec;
+}
+[data-motion='calm'] .fan-card { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .deal, .card-float, .fan-card, .title-shine, .ambient-spot, .ambient-suit { animation: none; }
+  .title-shine { background: none; -webkit-text-fill-color: currentColor; color: #e7f0ec; }
+  .fan-card { opacity: 1; }
 }

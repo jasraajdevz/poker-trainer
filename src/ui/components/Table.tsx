@@ -1,6 +1,7 @@
 import { evaluate } from '../../engine/evaluator';
 import { Scene } from '../../curriculum/types';
-import { CardRow } from './PlayingCard';
+import { CardRow, ChipStack } from './PlayingCard';
+import { getMode, terms } from '../../coach/profile';
 
 const STREET_LABEL: Record<string, string> = {
   preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River',
@@ -36,6 +37,7 @@ function Seat({
 }
 
 export function PokerTable({ scene, reveal }: { scene: Scene; reveal: boolean }) {
+  const t = terms(getMode());
   const board = scene.board ?? [];
   const heroRead = scene.heroCards && board.length >= 3 ? evaluate([...scene.heroCards, ...board]) : null;
 
@@ -52,15 +54,19 @@ export function PokerTable({ scene, reveal }: { scene: Scene; reveal: boolean })
             {STREET_LABEL[scene.street ?? 'flop'] ?? 'Board'}
           </span>
           {scene.potChips !== undefined && (
-            <span className="tnum text-sm text-emerald-100">
-              Pot <b className="text-amber-300">{scene.potChips}</b>
-              {scene.bigBlind && (
+            <span className="tnum flex items-center gap-2 text-sm text-emerald-100">
+              <ChipStack small />
+              <span>
+                {getMode() === 'kid' ? 'Star pile' : 'Pot'}{' '}
+                <b className="text-amber-300">{scene.potChips}</b>
+              </span>
+              {scene.bigBlind && getMode() !== 'kid' && (
                 <span className="text-emerald-200/45"> · {(scene.potChips / scene.bigBlind).toFixed(0)}bb</span>
               )}
             </span>
           )}
         </div>
-        <CardRow cards={board} size="lg" />
+        <CardRow cards={board} size="lg" deal />
       </div>
 
       {/* Hands */}
@@ -79,13 +85,17 @@ export function PokerTable({ scene, reveal }: { scene: Scene; reveal: boolean })
               <div className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-emerald-200/60">
                 You
               </div>
-              <CardRow cards={scene.heroCards} size="md" highlight={reveal && heroRead ? heroRead.best5 : undefined} />
+              <CardRow cards={scene.heroCards} size="md" deal highlight={reveal && heroRead ? heroRead.best5 : undefined} />
               {heroRead && <div className="mt-2 text-xs font-medium text-emerald-100/85">{heroRead.name}</div>}
             </div>
           )}
           {scene.villainCards && (
             <Seat
-              label={scene.villainLabel ?? 'Villain'}
+              label={
+                getMode() === 'kid'
+                  ? (scene.villainLabel ?? 'Villain').replace('Villain', 'The other player')
+                  : (scene.villainLabel ?? 'Villain')
+              }
               cards={scene.villainCards}
               reveal={board.length >= 3}
               board={board}
@@ -95,7 +105,7 @@ export function PokerTable({ scene, reveal }: { scene: Scene; reveal: boolean })
           {!scene.villainCards && scene.villainRangeText && (
             <div className="panel border border-rose-500/30 px-3 py-2.5">
               <div className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-emerald-200/60">
-                Villain{scene.villainPosition ? ` · ${scene.villainPosition}` : ''}
+                {t.opponent === 'villain' ? 'Villain' : 'The other player'}{scene.villainPosition ? ` · ${scene.villainPosition}` : ''}
               </div>
               <div className="text-sm text-emerald-100/85">{scene.villainRangeText}</div>
               <div className="mt-2 text-[11px] leading-snug text-emerald-200/40">
@@ -104,7 +114,7 @@ export function PokerTable({ scene, reveal }: { scene: Scene; reveal: boolean })
               </div>
               {scene.betChips !== undefined && (
                 <div className="tnum mt-2 text-sm text-rose-200">
-                  Bets <b>{scene.betChips}</b>
+                  {getMode() === 'kid' ? 'Adds' : 'Bets'} <b>{scene.betChips}</b>
                 </div>
               )}
             </div>

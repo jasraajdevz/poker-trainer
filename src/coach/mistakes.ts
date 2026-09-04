@@ -43,6 +43,10 @@ export interface TagInfo {
   description: string;
   /** The fix, in one line. */
   fix: string;
+  /** Kid-facing name: same idea, no money or gambling words, no scolding. */
+  kidLabel: string;
+  /** Kid-facing fix. */
+  kidFix: string;
 }
 
 export const TAGS: Record<ErrorTag, TagInfo> = {
@@ -51,146 +55,200 @@ export const TAGS: Record<ErrorTag, TagInfo> = {
     label: 'Misreads hand strength',
     description: 'Picked the losing hand when the two hands were different categories.',
     fix: 'Name both hands out loud before choosing: "flush" beats "straight" beats "trips".',
+    kidLabel: 'Mixes up hand strength',
+    kidFix: 'Say both hands out loud: flush beats straight beats three of a kind.',
   },
   'misreads-kickers': {
     id: 'misreads-kickers',
     label: 'Loses kicker battles',
     description: 'Both hands were the same category; the kicker decided it and you missed it.',
     fix: 'When the pair matches, read across: the fifth card is still a card.',
+    kidLabel: 'Misses the tie-breaker card',
+    kidFix: 'When the pairs match, the next card decides. Check it every time.',
   },
   'misses-chops': {
     id: 'misses-chops',
     label: 'Misses chops',
     description: 'The pot was split and you called a winner.',
     fix: 'If neither hole card improves on the board, it is a chop.',
+    kidLabel: 'Misses shared pots',
+    kidFix: 'If the five table cards are the best for everyone, the pile is shared.',
   },
   'misses-board-plays': {
     id: 'misses-board-plays',
     label: 'Misses when the board plays',
     description: 'The best five cards were all on the board and you read a hand into it.',
     fix: 'Ask "does my hole card beat the fifth board card?" If not, you play the board.',
+    kidLabel: 'Misses when the table plays',
+    kidFix: 'Ask: do my cards beat the fifth table card? If not, everyone shares.',
   },
   'overcounts-outs': {
     id: 'overcounts-outs',
     label: 'Overcounts outs',
     description: 'Counted more outs than actually win the hand.',
     fix: 'An out has to win, not just improve you.',
+    kidLabel: 'Counts too many saving cards',
+    kidFix: 'A saving card has to WIN the hand, not just make yours prettier.',
   },
   'undercounts-outs': {
     id: 'undercounts-outs',
     label: 'Undercounts outs',
     description: 'Missed outs that do win the hand.',
     fix: 'Count overcards and backdoor-free wins too, not just the obvious draw.',
+    kidLabel: 'Misses saving cards',
+    kidFix: 'Count every card that wins it, even the sneaky ones.',
   },
   'counts-dirty-outs': {
     id: 'counts-dirty-outs',
     label: 'Counts dirty outs',
     description: 'Your number matched outs-plus-dirty-outs: you counted cards that pair you but also improve villain.',
     fix: 'Deal the card in your head and ask who wins after it lands.',
+    kidLabel: 'Counts trap cards',
+    kidFix: 'Some cards help you a little and the other player a lot. Skip those.',
   },
   'overestimates-equity': {
     id: 'overestimates-equity',
     label: 'Overestimates equity',
     description: 'Guessed a higher equity than the simulation gives.',
     fix: 'The rule of 4 overshoots above 8 outs. Subtract the excess.',
+    kidLabel: 'Guesses chances too high',
+    kidFix: 'Outs times four on the flop, then trim a little when you have lots.',
   },
   'underestimates-equity': {
     id: 'underestimates-equity',
     label: 'Underestimates equity',
     description: 'Guessed a lower equity than the simulation gives.',
     fix: 'Count every way you win, including pairing up, not just the draw.',
+    kidLabel: 'Guesses chances too low',
+    kidFix: 'Count every way to win, not just the obvious one.',
   },
   'miscomputes-pot-odds': {
     id: 'miscomputes-pot-odds',
     label: 'Miscomputes pot odds',
     description: 'The required equity you entered was not call / (pot + call).',
     fix: 'Required equity = what you put in, over the pot after you put it in.',
+    kidLabel: 'Mixes up the price',
+    kidFix: 'What you put in, divided by the pile after you put it in.',
   },
   'calls-without-odds': {
     id: 'calls-without-odds',
     label: 'Calls without the odds',
     description: 'Called when your equity was below the price.',
     fix: 'Compare two numbers before every call: the price, and your equity.',
+    kidLabel: 'Pays when it is too pricey',
+    kidFix: 'Compare the price to your chances before you pay.',
   },
   'folds-with-odds': {
     id: 'folds-with-odds',
     label: 'Folds with the odds',
     description: 'Folded a call that was profitable on price alone.',
     fix: 'Cheap calls with real equity are how draws pay for themselves.',
+    kidLabel: 'Sits out of good deals',
+    kidFix: 'When the price is small and your chances are real, stay in.',
   },
   'overvalues-top-pair': {
     id: 'overvalues-top-pair',
     label: 'Overvalues top pair',
     description: 'Put money in with one pair against a range that has you crushed.',
     fix: 'Top pair is a bluff catcher on the turn and river, not a value hand.',
+    kidLabel: 'Loves one pair too much',
+    kidFix: 'One pair is nice, not unbeatable. Slow down with it.',
   },
   'too-passive-with-draws': {
     id: 'too-passive-with-draws',
     label: 'Too passive with draws',
     description: 'Folded or checked a draw that had the equity to continue.',
     fix: 'A big draw is often the equity favourite. Price it, do not fear it.',
+    kidLabel: 'Too shy with big draws',
+    kidFix: 'A big draw is strong. Work out its chances and back it.',
   },
   'ignores-position': {
     id: 'ignores-position',
     label: 'Ignores position',
     description: 'Played the same hand the same way regardless of seat.',
     fix: 'Acting last is worth real money. Widen on the button, tighten up front.',
+    kidLabel: 'Forgets where they sit',
+    kidFix: 'Going last is a superpower. Play more hands there, fewer up front.',
   },
   'opens-too-loose': {
     id: 'opens-too-loose',
     label: 'Opens too loose',
     description: 'Opened hands outside the baseline range for that seat.',
     fix: 'Every extra hand you open from early position plays out of position all night.',
+    kidLabel: 'Plays too many starts',
+    kidFix: 'Weak starting cards from early seats cause trouble all game.',
   },
   'opens-too-tight': {
     id: 'opens-too-tight',
     label: 'Opens too tight',
     description: 'Folded hands the baseline range opens from that seat.',
     fix: 'Late position steals are most of a winning player edge.',
+    kidLabel: 'Plays too few starts',
+    kidFix: 'From the late seats you can play lots more starting hands.',
   },
   'overplays-offsuit-aces': {
     id: 'overplays-offsuit-aces',
     label: 'Overplays offsuit aces',
     description: 'Played weak offsuit aces from seats that should fold them.',
     fix: 'A9o is dominated by everything that calls you. Suited aces are the playable ones.',
+    kidLabel: 'Overrates lonely aces',
+    kidFix: 'An ace with a weak partner loses to better aces. Matching suits help.',
   },
   'too-tight-with-suited-connectors': {
     id: 'too-tight-with-suited-connectors',
     label: 'Too tight with suited connectors',
     description: 'Folded suited connectors the baseline range plays.',
     fix: 'They flop draws that pay off, which offsuit broadways do not.',
+    kidLabel: 'Skips matching neighbours',
+    kidFix: 'Cards next to each other in one suit make sneaky-strong hands.',
   },
   'misreads-board-texture': {
     id: 'misreads-board-texture',
     label: 'Misreads board texture',
     description: 'Classified the board against the computed equity split.',
     fix: 'Dry, disconnected, high boards favour the raiser. Wet middling boards favour the caller.',
+    kidLabel: 'Misreads the table cards',
+    kidFix: 'High spread-out cards help the raiser; low connected ones help the caller.',
   },
   'wrong-size-for-texture': {
     id: 'wrong-size-for-texture',
     label: 'Wrong size for the texture',
     description: 'Chose a bet size with lower EV than an available alternative.',
     fix: 'Small on dry boards, big on wet ones where you must charge draws.',
+    kidLabel: 'Picks the size that wins less',
+    kidFix: 'Small amounts on quiet tables, big amounts on busy ones.',
   },
   'bluffs-into-calling-stations': {
     id: 'bluffs-into-calling-stations',
     label: 'Bluffs into calling stations',
     description: 'Bluffed an opponent whose modelled fold frequency cannot make it profitable.',
     fix: 'You cannot bluff someone who does not fold. Value bet them instead.',
+    kidLabel: 'Tricks players who never quit',
+    kidFix: 'You cannot trick someone who always stays in. Use strong hands instead.',
   },
   'bets-with-no-value-and-no-fold-equity': {
     id: 'bets-with-no-value-and-no-fold-equity',
     label: 'Bets with neither value nor fold equity',
     description: 'Bet a hand that worse hands do not call and better hands do not fold.',
     fix: 'If nobody worse calls and nobody better folds, checking is free.',
+    kidLabel: 'Adds stars for no reason',
+    kidFix: 'If worse hands will not pay and better ones will not quit, just wait.',
   },
   'checks-back-value': {
     id: 'checks-back-value',
     label: 'Checks back value',
     description: 'Checked a hand that beats enough of villain calling range to bet.',
     fix: 'Ask "would a worse hand call?" If yes, bet it.',
+    kidLabel: 'Too shy with strong hands',
+    kidFix: 'If a worse hand would pay you, ask it to pay.',
   },
 };
+
+/** Mode-aware accessors. `kid` is a boolean to avoid an import cycle with profile.ts. */
+export const tagLabel = (tag: ErrorTag, kid: boolean): string =>
+  (kid ? TAGS[tag]?.kidLabel : TAGS[tag]?.label) ?? tag;
+export const tagFix = (tag: ErrorTag, kid: boolean): string =>
+  (kid ? TAGS[tag]?.kidFix : TAGS[tag]?.fix) ?? '';
 
 // ---------------------------------------------------------------------------
 // Spaced repetition

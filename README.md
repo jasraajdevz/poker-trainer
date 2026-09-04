@@ -12,10 +12,30 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 331 tests
+npm test        # 336 tests
 npm run build   # production bundle
 npm run deploy  # publish to GitHub Pages
 ```
+
+## What it looks like, and what it's made of
+
+There is not a single image, video, or audio file in this app. Every visual is
+drawn in code — card faces from typography and gradients, the table from CSS
+light, celebration from emoji, music and sounds synthesised live with Web
+Audio. That makes it family-friendly *by construction*: there is nothing on
+screen that is not listed below.
+
+- **Cards** — CSS faces with twin corner indices, centre pips, patterned backs
+- **Table** — four felt themes (Emerald, Midnight, Crimson, Royal), a breathing
+  spotlight, drifting suit glyphs, a vignette
+- **Suits** ♠ ♥ ♦ ♣ and the full emoji set: ⭐ 🎉 👑 🔥 🪩 💎 ⚡ 🦈 🐣 🏆 🃏
+  ✨ 💫 🌟 🎴 🎖 🗡 💪 🏃 🔢 🔎 👁 ⚖ 🌙 🎁 🎲 💣 🤔 plus UI glyphs (⚙ 🔊 🔒 ✕ →)
+
+## Settings
+
+The gear (top-left everywhere, or ⚙ on the home screen): kids/adults, your
+name, table felt, four-colour or classic deck, Full sparkle / Calm effects
+(Calm keeps every feature and removes the movement), sounds, and reset.
 
 ## Two ways in
 

@@ -9,13 +9,16 @@
 type Voice = 'correct' | 'wrong' | 'levelUp' | 'badge' | 'streak' | 'click';
 
 let ctx: AudioContext | null = null;
-let enabled = true;
 const KEY = 'poker-trainer:sfx';
 
-export function sfxEnabled(): boolean {
-  if (typeof localStorage === 'undefined') return enabled;
-  try { return localStorage.getItem(KEY) !== 'off'; } catch { return enabled; }
-}
+// Seeded from storage once; from then on the in-memory flag is the truth, so
+// the Off toggle still works when localStorage writes fail (private mode).
+let enabled = (() => {
+  if (typeof localStorage === 'undefined') return true;
+  try { return localStorage.getItem(KEY) !== 'off'; } catch { return true; }
+})();
+
+export function sfxEnabled(): boolean { return enabled; }
 
 export function setSfx(on: boolean): void {
   enabled = on;

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Drill, LevelModule } from '../../curriculum/types';
 import { Progress } from '../../coach/progress';
 import { BOSS_PASS, Leak, activeLeaks, bossFight, dojoSession, dueLeaks } from '../../coach/dojo';
-import { ErrorTag, SR_INTERVALS } from '../../coach/mistakes';
+import { ErrorTag, SR_INTERVALS, tagFix, tagLabel } from '../../coach/mistakes';
 
 /** Wrap a fixed list of drills so the normal level runner can play them. */
 export function makeDrillPack(id: string, title: string, subtitle: string, drills: Drill[]): LevelModule {
@@ -16,10 +16,11 @@ export function makeDrillPack(id: string, title: string, subtitle: string, drill
 }
 
 export function DojoView({
-  progress, pro, onRun, onExit,
+  progress, pro, kid = false, onRun, onExit,
 }: {
   progress: Progress;
   pro: boolean;
+  kid?: boolean;
   onRun: (level: LevelModule, boss?: ErrorTag) => void;
   onExit: () => void;
 }) {
@@ -34,9 +35,13 @@ export function DojoView({
       <button onClick={onExit} className="mb-6 text-xs text-emerald-300/60 hover:text-emerald-200">
         ← All levels
       </button>
-      <h1 className="text-3xl font-bold tracking-tight text-emerald-50">The Mistake Dojo</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-emerald-50">
+        {kid ? 'Practice Zone' : 'The Mistake Dojo'}
+      </h1>
       <p className="mt-1 text-emerald-200/60">
-        Ranked by what each leak actually cost you, projected per 100 hands.
+        {kid
+          ? 'The things to practise, biggest first. Beat them and they go away.'
+          : 'Ranked by what each leak actually cost you, projected per 100 hands.'}
       </p>
 
       {leaks.length === 0 ? (
@@ -46,9 +51,11 @@ export function DojoView({
       ) : (
         <>
           <div className="panel mt-6 grid grid-cols-3 gap-px overflow-hidden bg-emerald-900/40">
-            <Cell label="Open leaks" value={String(leaks.length)} />
-            <Cell label="Combined cost" value={`${totalCost.toFixed(1)} bb/100`} tone="bad" />
-            <Cell label="Due for review" value={String(due.length)} />
+            <Cell label={kid ? 'To practise' : 'Open leaks'} value={String(leaks.length)} />
+            {kid
+              ? <Cell label="Times missed" value={String(leaks.reduce((n, l) => n + l.occurrences, 0))} tone="bad" />
+              : <Cell label="Combined cost" value={`${totalCost.toFixed(1)} bb/100`} tone="bad" />}
+            <Cell label={kid ? 'Ready to retry' : 'Due for review'} value={String(due.length)} />
           </div>
 
           <button
@@ -66,6 +73,7 @@ export function DojoView({
               <LeakRow
                 key={l.tag}
                 leak={l}
+                kid={kid}
                 pro={pro}
                 onBoss={() => onRun(
                   makeDrillPack('boss', `Boss Fight — ${l.label}`,
@@ -110,13 +118,13 @@ export function DojoView({
   );
 }
 
-function LeakRow({ leak, pro, onBoss }: { leak: Leak; pro: boolean; onBoss: () => void }) {
+function LeakRow({ leak, kid, pro, onBoss }: { leak: Leak; kid: boolean; pro: boolean; onBoss: () => void }) {
   return (
     <div className={`panel px-4 py-3 ${leak.due ? 'border-amber-500/40' : ''}`}>
       <div className="flex items-baseline justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-rose-200">{leak.label}</span>
+            <span className="font-semibold text-rose-200">{tagLabel(leak.tag, kid)}</span>
             <span className="font-mono text-[10px] text-emerald-200/30">{leak.level}</span>
             {leak.due && (
               <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-200">
@@ -124,13 +132,22 @@ function LeakRow({ leak, pro, onBoss }: { leak: Leak; pro: boolean; onBoss: () =
               </span>
             )}
           </div>
-          <div className="mt-0.5 text-xs text-emerald-200/55">{leak.fix}</div>
+          <div className="mt-0.5 text-xs text-emerald-200/55">{tagFix(leak.tag, kid)}</div>
           <div className="mt-1 text-[11px] text-emerald-200/35">{leak.stageLabel}</div>
         </div>
         <div className="tnum shrink-0 text-right">
-          <div className="text-lg font-bold text-rose-300">{leak.bbPer100.toFixed(1)}</div>
-          <div className="text-[10px] uppercase tracking-wide text-emerald-200/40">bb / 100</div>
-          <div className="mt-0.5 text-[11px] text-emerald-200/45">{leak.occurrences}x</div>
+          {kid ? (
+            <>
+              <div className="text-lg font-bold text-rose-300">{leak.occurrences}×</div>
+              <div className="text-[10px] uppercase tracking-wide text-emerald-200/40">missed</div>
+            </>
+          ) : (
+            <>
+              <div className="text-lg font-bold text-rose-300">{leak.bbPer100.toFixed(1)}</div>
+              <div className="text-[10px] uppercase tracking-wide text-emerald-200/40">bb / 100</div>
+              <div className="mt-0.5 text-[11px] text-emerald-200/45">{leak.occurrences}x</div>
+            </>
+          )}
         </div>
       </div>
       <div className="mt-2.5 flex items-center gap-2">

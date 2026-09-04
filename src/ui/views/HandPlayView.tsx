@@ -12,7 +12,8 @@ import {
 import { L8_COACHED_HANDS } from '../../curriculum/l8-fullhands';
 import { sizingLines } from '../../curriculum/l6-sizing';
 import { budget } from '../../coach/pro';
-import { CardRow } from '../components/PlayingCard';
+import { CardRow, ChipStack } from '../components/PlayingCard';
+import { Mode } from '../../coach/profile';
 import { ShareButton } from '../components/Share';
 
 interface HeroNode {
@@ -48,14 +49,20 @@ const HERO_SEATS: Position[] = ['BTN', 'CO', 'SB', 'HJ', 'BB', 'UTG', 'BTN', 'CO
 const CAST: ArchetypeId[] = ['tag', 'station', 'nit', 'tag', 'station'];
 
 export function HandPlayView({
-  pro, casual = false, onShare, onExit,
+  pro, casual = false, mode = 'adult', welcome = false, onWelcomeDone, onShare, onExit,
 }: {
   pro: boolean;
   /** Front-door play: coach always on, nothing scored, play as long as you like. */
   casual?: boolean;
+  mode?: Mode;
+  /** First visit ever: show the two-line welcome over the table. */
+  welcome?: boolean;
+  onWelcomeDone?: () => void;
   onShare: (correct: number, total: number) => void;
   onExit: () => void;
 }) {
+  const kid = mode === 'kid';
+  const [greeting, setGreeting] = useState(welcome);
   const [handNo, setHandNo] = useState(0);
   const [seed] = useState(() => `h${Date.now()}`);
   const [state, setState] = useState<HandState | null>(null);
@@ -140,8 +147,11 @@ export function HandPlayView({
       }).equity[0]!;
       const opts: Array<{ label: string; ev: number; key: string }> = [];
       if (n.toCall > 0) {
-        opts.push({ label: 'Fold', ev: 0, key: 'fold' });
-        opts.push({ label: `Call ${n.toCall}`, ev: evCall(n.pot, n.toCall, eq), key: 'call' });
+        opts.push({ label: kid ? 'Sit out' : 'Fold', ev: 0, key: 'fold' });
+        opts.push({
+          label: kid ? `Stay in ${n.toCall}` : `Call ${n.toCall}`,
+          ev: evCall(n.pot, n.toCall, eq), key: 'call',
+        });
       } else {
         opts.push({ label: 'Check', ev: evCheck(n.pot, eq), key: 'check' });
       }
@@ -154,7 +164,10 @@ export function HandPlayView({
         } else {
           const size = Math.max(10, Math.round(n.pot * 0.66));
           const r = bot.respondTo(n.cards, n.board, n.pot, size, range, `rev:${n.pot}`);
-          opts.push({ label: `${n.toCall > 0 ? 'Raise' : 'Bet'} ${size}`, ev: evBet(n.pot, size, r), key: 'aggr' });
+          opts.push({
+          label: kid ? `Add ${size}` : `${n.toCall > 0 ? 'Raise' : 'Bet'} ${size}`,
+          ev: evBet(n.pot, size, r), key: 'aggr',
+        });
         }
       }
       opts.sort((x, y) => y.ev - x.ev);
@@ -213,12 +226,22 @@ export function HandPlayView({
       <div className="mx-auto max-w-2xl px-6 py-12">
         <h1 className="text-3xl font-bold text-emerald-50">Session complete</h1>
         <div className="panel mt-6 grid grid-cols-3 gap-px overflow-hidden bg-emerald-900/40">
-          <Box label="Scored hands" value={String(scored.length)} />
-          <Box label="Net result" value={`${net >= 0 ? '+' : ''}${net.toFixed(1)} bb`} tone={net >= 0 ? 'good' : 'bad'} />
-          <Box label="EV given up" value={`${lost.toFixed(2)} bb`} tone="bad" />
+          <Box label={kid ? 'Hands played' : 'Scored hands'} value={String(scored.length)} />
+          <Box
+            label={kid ? 'Stars won' : 'Net result'}
+            value={`${net >= 0 ? '+' : ''}${net.toFixed(1)}${kid ? ' ⭐' : ' bb'}`}
+            tone={net >= 0 ? 'good' : 'bad'}
+          />
+          <Box
+            label={kid ? 'Stars given back' : 'EV given up'}
+            value={`${lost.toFixed(kid ? 1 : 2)}${kid ? ' ⭐' : ' bb'}`}
+            tone="bad"
+          />
         </div>
         <p className="mt-4 text-sm text-emerald-200/60">
-          Net result is mostly luck over ten hands. EV given up is not — that number is yours.
+          {kid
+            ? 'Winning ten hands is mostly luck. Playing each one well is the bit that counts — and that bit was yours.'
+            : 'Net result is mostly luck over ten hands. EV given up is not — that number is yours.'}
         </p>
         <div className="mt-6 flex gap-3">
           <button onClick={onExit} className="btn-primary">Back to levels</button>
@@ -251,12 +274,35 @@ export function HandPlayView({
         </div>
       </header>
 
+      {greeting && (
+        <div className="rise panel relative mb-4 border-emerald-400/50 bg-emerald-500/10 p-4">
+          <button
+            onClick={() => { setGreeting(false); onWelcomeDone?.(); }}
+            className="absolute right-3 top-2.5 text-emerald-200/40 hover:text-emerald-100"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+          <div className="text-lg font-black text-emerald-50">
+            {kid ? '🎉 Your seat is ready!' : 'Welcome to the table.'}
+          </div>
+          <p className="mt-1 text-sm leading-relaxed text-emerald-100/80">
+            {kid
+              ? `Those two cards are yours and nobody else can see them. When it is your turn, pick a button — and press H any time to see your chances. You cannot break anything.`
+              : `You are dealt in against three bots. F folds, C checks or calls, R opens sizing, H shows your live equity and price. Nothing here is scored.`}
+          </p>
+        </div>
+      )}
+
       <div className="panel mb-4 p-4">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-[11px] uppercase tracking-widest text-emerald-200/50">{state.street}</span>
-          <span className="tnum text-sm">Pot <b className="text-amber-300">{pot(state)}</b></span>
+          <span className="tnum flex items-center gap-2 text-sm">
+            <ChipStack small />
+            <span>{kid ? 'Star pile' : 'Pot'} <b className="text-amber-300">{pot(state)}</b></span>
+          </span>
         </div>
-        <CardRow cards={state.board} size="lg" />
+        <CardRow cards={state.board} size="lg" deal />
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -272,7 +318,7 @@ export function HandPlayView({
               <span className="tnum text-emerald-200/60">{s.stack}</span>
             </div>
             {(s.isHero || state.complete) && (
-              <div className="mt-1.5"><CardRow cards={s.cards} size="sm" /></div>
+              <div className="mt-1.5"><CardRow cards={s.cards} size="sm" deal={s.isHero} /></div>
             )}
             {s.streetCommitted > 0 && (
               <div className="tnum mt-1 text-[11px] text-amber-300/80">in {s.streetCommitted}</div>
@@ -292,18 +338,31 @@ export function HandPlayView({
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            {legal.canFold && <Btn hotkey="f" label="Fold" onClick={() => act({ type: 'fold' })} />}
+            {legal.canFold && (
+              <Btn hotkey="f" label={kid ? 'Sit out' : 'Fold'} onClick={() => act({ type: 'fold' })} />
+            )}
             <Btn
               hotkey="c"
               label={legal.canCheck ? 'Check' : `Call ${legal.callAmount}`}
               onClick={() => act(legal.canCheck ? { type: 'check' } : { type: 'call' })}
             />
-            {legal.canRaise && <Btn hotkey="r" label={legal.canCheck ? 'Bet' : 'Raise'} onClick={() => setRaiseOpen(!raiseOpen)} />}
+            {legal.canRaise && (
+              <Btn
+                hotkey="r"
+                label={legal.canCheck ? (kid ? 'Add stars' : 'Bet') : (kid ? 'Add more' : 'Raise')}
+                onClick={() => setRaiseOpen(!raiseOpen)}
+              />
+            )}
             {coached && <Btn hotkey="h" label="Hint" onClick={showHint} tone="amber" />}
           </div>
           {raiseOpen && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {[['1', 0.33, '33%'], ['2', 0.66, '66%'], ['3', 1, 'Pot'], ['4', 2, 'All in']].map(([k, fr, lab]) => (
+              {[
+                ['1', 0.33, '33%'],
+                ['2', 0.66, '66%'],
+                ['3', 1, kid ? 'The pile' : 'Pot'],
+                ['4', 2, kid ? 'All my stars' : 'All in'],
+              ].map(([k, fr, lab]) => (
                 <Btn
                   key={k as string}
                   hotkey={k as string}
@@ -331,16 +390,19 @@ export function HandPlayView({
       )}
 
       {state.complete && review && (
-        <Review state={state} review={review} heroId={heroId} onNext={() => setHandNo(handNo + 1)} />
+        <Review
+          state={state} review={review} heroId={heroId} kid={kid}
+          onNext={() => setHandNo(handNo + 1)}
+        />
       )}
     </div>
   );
 }
 
 function Review({
-  state, review, heroId, onNext,
+  state, review, heroId, kid, onNext,
 }: {
-  state: HandState; review: Analysed[]; heroId: number; onNext: () => void;
+  state: HandState; review: Analysed[]; heroId: number; kid: boolean; onNext: () => void;
 }) {
   const net = netResult(state, heroId) / state.bigBlind;
   const lost = review.reduce((n, a) => n + a.evLost, 0);
@@ -348,12 +410,16 @@ function Review({
   return (
     <div className="rise panel mt-4 p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-emerald-100">Hand review</h2>
+        <h2 className="text-sm font-semibold text-emerald-100">
+          {kid ? 'How you played' : 'Hand review'}
+        </h2>
         <span className="tnum text-sm">
           <span className={net >= 0 ? 'text-emerald-300' : 'text-rose-300'}>
-            {net >= 0 ? '+' : ''}{net.toFixed(1)} bb
+            {net >= 0 ? '+' : ''}{net.toFixed(1)} {kid ? '⭐' : 'bb'}
           </span>
-          <span className="ml-3 text-rose-300/80">−{lost.toFixed(2)} bb EV</span>
+          <span className="ml-3 text-rose-300/80">
+            {kid ? `gave back ${lost.toFixed(1)} ⭐` : `−${lost.toFixed(2)} bb EV`}
+          </span>
         </span>
       </div>
 
@@ -362,13 +428,19 @@ function Review({
           {review.map((r, i) => (
             <div key={i} className="flex items-baseline justify-between gap-3 text-xs">
               <span className="text-emerald-200/55">
-                {r.street}{r.board.length ? ` · ${cardsToString(r.board)}` : ''} · pot {r.pot}
+                {r.street}{r.board.length ? ` · ${cardsToString(r.board)}` : ''} · {kid ? 'pile' : 'pot'} {r.pot}
               </span>
               <span className="tnum shrink-0">
                 <span className={r.evLost < 0.05 ? 'text-emerald-300' : 'text-rose-300'}>{r.chosen}</span>
                 {r.evLost >= 0.05 && <span className="ml-2 text-emerald-200">best: {r.best}</span>}
-                <span className="ml-2 text-emerald-200/40">eq {r.equity.toFixed(0)}%</span>
-                {r.evLost >= 0.05 && <span className="ml-2 text-rose-300/80">−{r.evLost.toFixed(2)}bb</span>}
+                <span className="ml-2 text-emerald-200/40">
+                  {kid ? 'chances' : 'eq'} {r.equity.toFixed(0)}%
+                </span>
+                {r.evLost >= 0.05 && (
+                  <span className="ml-2 text-rose-300/80">
+                    −{r.evLost.toFixed(kid ? 1 : 2)}{kid ? ' ⭐' : 'bb'}
+                  </span>
+                )}
               </span>
             </div>
           ))}

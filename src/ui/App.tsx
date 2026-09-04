@@ -30,6 +30,10 @@ import {
 } from '../coach/profile';
 import { Onboarding } from './views/Onboarding';
 import { BadgeToast, RankUpToast } from './components/Celebrate';
+import { Ambient } from './components/Ambient';
+import { SettingsModal } from './components/SettingsModal';
+import { Settings, applySettings, loadSettings } from '../coach/settings';
+import { setSfx } from '../audio/sfx';
 import {
   BANNER_HEIGHT, DiscoBanner, DiscoBar, DiscoOverlay, useDiscoPulse,
 } from './components/DiscoMode';
@@ -60,6 +64,12 @@ export function App() {
   const [bossLabel, setBossLabel] = useState<string | undefined>();
   const [name, setName] = useState(() => loadName());
   const [mode, setModeState] = useState<Mode | null>(() => loadMode());
+  const [settings, setSettings] = useState<Settings>(() => loadSettings());
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [welcome, setWelcome] = useState(false);
+
+  // Cosmetics are stamped on <html> once at boot and again on change.
+  useEffect(() => { applySettings(settings); setSfx(settings.sound); }, [settings]);
   const [xp, setXp] = useState(() => loadXp());
   const [bestStreak, setBestStreak] = useState(() => loadBestStreak());
   const [seenBadges, setSeenBadges] = useState<string[]>(() => loadSeenBadges());
@@ -220,12 +230,29 @@ export function App() {
 
   useEffect(() => { saveProgress(progress); }, [progress]);
 
+  /** The reset the dialog promises: progress, XP, streak, badges, points. */
+  const resetAll = useCallback(() => {
+    setProgress(emptyProgress());
+    setXp(0);
+    setBestStreak(0);
+    setPointsState(0);
+    // seenBadges only persists inside the toast effect, which early-returns
+    // when nothing is newly earned — so clear storage explicitly.
+    setSeenBadges([]);
+    saveSeenBadges([]);
+  }, []);
+
   const onResult = useCallback((r: DrillResult) => {
     setProgress((p) => applyResult(p, r));
     // Drills answered during a party are worth birthday points.
     if (isLive(loadParty())) addPoints(DRILL_POINTS + (r.correct ? CORRECT_BONUS : 0));
   }, [addPoints]);
-  const home = useCallback(() => { setView({ k: 'home' }); setBossLabel(undefined); }, []);
+  const home = useCallback(() => {
+    setView({ k: 'home' });
+    setBossLabel(undefined);
+    // The table greeting is one-shot however you leave the table.
+    setWelcome(false);
+  }, []);
 
   const pick = useCallback((id: LevelId) => {
     if (isHandPlay(id)) { setView({ k: 'hands' }); return; }
@@ -252,7 +279,22 @@ export function App() {
   }, [badges, seenBadges]);
 
   if (!mode) {
-    return <Onboarding onPick={(m) => { persistMode(m); setModeState(m); }} />;
+    return (
+      <>
+        <Ambient />
+        <div className="relative z-10">
+          <Onboarding
+            onPick={(m) => {
+              persistMode(m);
+              setModeState(m);
+              // The first thing that happens is a hand being dealt to you.
+              setWelcome(true);
+              setView({ k: 'casual' });
+            }}
+          />
+        </div>
+      </>
+    );
   }
 
   if (incoming) {
@@ -264,6 +306,9 @@ export function App() {
         hasProgress={progress.history.length > 0}
         onStart={() => {
           dismissIncoming();
+          // A brand-new player who arrived via a friend's link was promised a
+          // dealt hand at the door; deliver that before any curriculum.
+          if (welcome) { setView({ k: 'casual' }); return; }
           const next = LEVEL_ORDER.find((id) => !levelProgress(progress, id).completed) ?? 'L0';
           pick(next);
         }}
@@ -283,7 +328,7 @@ export function App() {
             xp={xp}
             badges={badges}
             onPlay={() => setView({ k: 'casual' })}
-            onMode={() => setModeState(mode === 'kid' ? 'adult' : 'kid')}
+            onMode={() => setSettingsOpen(true)}
             onPick={pick}
             onDojo={() => setView({ k: 'dojo' })}
             onLab={() => setView({ k: 'lab' })}
@@ -291,7 +336,7 @@ export function App() {
             onShare={shareOverall}
             onBoard={() => setView({ k: 'board' })}
             boardCount={roster.length + 1}
-            onReset={() => setProgress(emptyProgress())}
+            onReset={resetAll}
           />
         );
 
@@ -311,12 +356,23 @@ export function App() {
       }
 
       case 'casual':
-        return <HandPlayView pro={pro} casual onShare={() => undefined} onExit={home} />;
+        return (
+          <HandPlayView
+            pro={pro}
+            casual
+            mode={mode}
+            welcome={welcome}
+            onWelcomeDone={() => setWelcome(false)}
+            onShare={() => undefined}
+            onExit={home}
+          />
+        );
 
       case 'hands':
         return (
           <HandPlayView
             pro={pro}
+            mode={mode}
             onShare={(won, total) => shareRun('L8', 'Full hands', won, total, 0)}
             onExit={home}
           />
@@ -325,7 +381,7 @@ export function App() {
       case 'dojo':
         return (
           <DojoView
-            progress={progress} pro={pro} onExit={home}
+            progress={progress} pro={pro} kid={mode === 'kid'} onExit={home}
             onRun={(level, boss) => { setBossLabel(undefined); setView({ k: 'pack', level, boss }); }}
           />
         );
@@ -373,6 +429,7 @@ export function App() {
 
   return (
     <>
+      <Ambient />
       {partyOn && party && (
         <>
           <DiscoOverlay pulse={pulse} />
@@ -417,11 +474,33 @@ export function App() {
           }}
         />
       )}
+      {settingsOpen && (
+        <SettingsModal
+          settings={settings}
+          mode={mode}
+          name={name}
+          onSettings={setSettings}
+          onMode={(m) => { persistMode(m); setModeState(m); }}
+          onName={setName}
+          onReset={resetAll}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
       {badgeToast && (
         <BadgeToast badge={badgeToast} mode={mode} onDone={() => setBadgeToast(null)} />
       )}
       {rankToast && (
         <RankUpToast state={rankToast} mode={mode} onDone={() => setRankToast(null)} />
+      )}
+      {view.k !== 'home' && !partyOn && (
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="fixed right-4 top-12 z-40 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1
+                     text-sm text-emerald-200/60 transition hover:text-emerald-100"
+          title="Settings"
+        >
+          ⚙
+        </button>
       )}
       {view.k !== 'home' && !partyOn && (
         <button

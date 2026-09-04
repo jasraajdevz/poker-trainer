@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DrillAnswers, DrillFeedback, LevelModule } from '../../curriculum/types';
 import { DrillResult, median } from '../../coach/progress';
-import { TAGS } from '../../coach/mistakes';
+import { tagFix, tagLabel } from '../../coach/mistakes';
 import { CoachPanel } from '../components/CoachPanel';
 import { PokerTable } from '../components/Table';
 import { ShareButton } from '../components/Share';
@@ -236,12 +236,12 @@ export function LevelView({
               <div key={tag} className="px-4 py-2.5">
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm font-medium text-rose-200">
-                    {TAGS[tag as keyof typeof TAGS]?.label ?? tag}
+                    {tagLabel(tag as never, mode === 'kid')}
                   </span>
                   <span className="tnum text-xs text-emerald-200/50">{n}x</span>
                 </div>
                 <div className="mt-0.5 text-xs text-emerald-200/55">
-                  {TAGS[tag as keyof typeof TAGS]?.fix}
+                  {tagFix(tag as never, mode === 'kid')}
                 </div>
               </div>
             ))}
