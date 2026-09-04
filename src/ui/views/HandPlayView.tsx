@@ -49,7 +49,7 @@ const HERO_SEATS: Position[] = ['BTN', 'CO', 'SB', 'HJ', 'BB', 'UTG', 'BTN', 'CO
 const CAST: ArchetypeId[] = ['tag', 'station', 'nit', 'tag', 'station'];
 
 export function HandPlayView({
-  pro, casual = false, mode = 'adult', welcome = false, onWelcomeDone, onShare, onExit,
+  pro, casual = false, mode = 'adult', welcome = false, onTutorial, onWelcomeDone, onShare, onExit,
 }: {
   pro: boolean;
   /** Front-door play: coach always on, nothing scored, play as long as you like. */
@@ -57,6 +57,7 @@ export function HandPlayView({
   mode?: Mode;
   /** First visit ever: show the two-line welcome over the table. */
   welcome?: boolean;
+  onTutorial?: () => void;
   onWelcomeDone?: () => void;
   onShare: (correct: number, total: number) => void;
   onExit: () => void;
@@ -291,6 +292,15 @@ export function HandPlayView({
               ? `Those two cards are yours and nobody else can see them. When it is your turn, pick a button — and press H any time to see your chances. You cannot break anything.`
               : `You are dealt in against three bots. F folds, C checks or calls, R opens sizing, H shows your live equity and price. Nothing here is scored.`}
           </p>
+          {onTutorial && (
+            <button
+              onClick={onTutorial}
+              className="mt-2 text-sm font-semibold text-emerald-300 underline decoration-emerald-500/50
+                         underline-offset-2 hover:text-emerald-200"
+            >
+              {kid ? '🎓 Show me how to play first →' : '🎓 Take the 2-minute tour first →'}
+            </button>
+          )}
         </div>
       )}
 

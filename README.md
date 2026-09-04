@@ -12,7 +12,7 @@ npm run dev
 No backend, no accounts, no API keys. Progress lives in `localStorage`.
 
 ```bash
-npm test        # 338 tests
+npm test        # 345 tests
 npm run build   # production bundle
 npm run deploy  # publish to GitHub Pages
 ```
@@ -33,6 +33,15 @@ screen that is not listed below.
   spotlight, drifting suit glyphs, a vignette
 - **Suits** ♠ ♥ ♦ ♣ and the full emoji set: ⭐ 🎉 👑 🔥 🪩 💎 ⚡ 🦈 🐣 🏆 🃏
   ✨ 💫 🌟 🎴 🎖 🗡 💪 🏃 🔢 🔎 👁 ⚖ 🌙 🎁 🎲 💣 🤔 plus UI glyphs (⚙ 🔊 🔒 ✕ →)
+
+## The floating "?" — ask me anything
+
+On every screen. Tap it for a row of questions — "How do I play?", "What beats
+what?", "When is it worth staying in?" — each with a full hand-written answer in
+the current mode's vocabulary, plus a search box that finds the right topic.
+The 2-minute tour is always the first thing it offers. It is a curated guide,
+not an AI, and kid-visible answers pass the same no-money/no-scolding tests as
+everything else.
 
 ## Settings
 

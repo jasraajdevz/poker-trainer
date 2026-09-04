@@ -6,7 +6,7 @@ export function UpgradeButton({ pro, onClick }: { pro: boolean; onClick: () => v
   return (
     <button
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-lg border px-3.5 py-1.5 text-xs font-bold uppercase
+      className={`group relative overflow-hidden rounded-xl border px-5 py-2.5 text-sm font-black uppercase
         tracking-widest transition ${
         pro
           ? 'border-amber-300/70 bg-gradient-to-b from-amber-200/30 to-amber-500/20 text-amber-100 shadow-[0_0_20px_-4px_rgba(251,191,36,0.6)]'

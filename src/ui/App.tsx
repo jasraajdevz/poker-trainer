@@ -43,6 +43,7 @@ import { DojoView } from './views/DojoView';
 import { HandPlayView } from './views/HandPlayView';
 import { LabView } from './views/LabView';
 import { TutorialView } from './views/TutorialView';
+import { HelpWidget } from './components/HelpWidget';
 import { LeaderboardView } from './views/LeaderboardView';
 import { UpgradeModal } from './components/Upgrade';
 import { ShareModal, SharedScoreView } from './components/Share';
@@ -381,6 +382,7 @@ export function App() {
             casual
             mode={mode}
             welcome={welcome}
+            onTutorial={() => setView({ k: 'tutorial' })}
             onWelcomeDone={() => setWelcome(false)}
             onShare={() => undefined}
             onExit={home}
@@ -511,10 +513,13 @@ export function App() {
       {rankToast && (
         <RankUpToast state={rankToast} mode={mode} onDone={() => setRankToast(null)} />
       )}
+      {view.k !== 'tutorial' && (
+        <HelpWidget mode={mode} onTutorial={() => setView({ k: 'tutorial' })} />
+      )}
       {view.k !== 'home' && !partyOn && (
         <button
           onClick={() => setSettingsOpen(true)}
-          className="fixed right-4 top-12 z-40 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1
+          className="fixed right-4 top-16 z-40 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1
                      text-sm text-emerald-200/60 transition hover:text-emerald-100"
           title="Settings"
         >
@@ -524,7 +529,7 @@ export function App() {
       {view.k !== 'home' && !partyOn && (
         <button
           onClick={() => setModal(true)}
-          className={`fixed right-4 top-4 z-40 rounded-lg border px-2.5 py-1 text-[10px] font-bold
+          className={`fixed right-4 top-4 z-40 rounded-xl border px-4 py-2 text-xs font-black
             uppercase tracking-widest transition ${
             pro
               ? 'border-amber-300/60 bg-amber-400/15 text-amber-200'

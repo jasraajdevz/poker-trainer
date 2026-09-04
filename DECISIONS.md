@@ -340,3 +340,11 @@ reverse; say the word on any of them.
     iOS anti-zoom rule, three kid-vocabulary leaks the tutorial itself exposed,
     a stale onboarding promise, and the tutorial re-arming the one-shot
     greeting.
+
+92. **The help widget is a hand-written guide, and says so.** With no server
+    there is no live AI to ask; a row of tap-able questions with curated,
+    mode-aware answers delivers what was asked for honestly. Search is keyword
+    ranking over the same content, so it can find topics but never invent one.
+93. **The guide's kid answers are guard-tested like all kid copy** — and the
+    guard caught the question "Is it okay to sit out?" in its earlier wording
+    ("Is sitting out bad?"). Reworded positively rather than weakening the test.
