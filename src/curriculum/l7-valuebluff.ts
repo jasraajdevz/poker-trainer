@@ -159,4 +159,3 @@ export const L7: LevelModule = {
   generate: (i, s, n) => build(i, s, n),
 };
 
-export const buildL7 = build;

@@ -1,7 +1,7 @@
 # Poker Trainer — Full Specification
 
 Live: **https://jasraajdevz.github.io/poker-trainer/** · Repo: `jasraajdevz/poker-trainer`
-Stack: Vite + React 18 + TypeScript (strict) + Tailwind 3 · Tests: Vitest, 338 passing
+Stack: Vite + React 18 + TypeScript (strict) + Tailwind 3 · Tests: Vitest, 345 passing
 No backend. No accounts. No API keys. Everything runs in the browser.
 
 ---
@@ -113,7 +113,7 @@ tags), ranked by measured bb/100 cost (times-missed for kids), drilled with
 *new* spots, spaced repetition at 1/3/10/30 drills, and Boss Fights (Omega)
 that retire a leak for good.
 
-**Progression**: XP (streak bonus capped), 7 ranks per mode (Card Cub→Card
+**Progression**: XP per correct answer (streak bonus capped), +60 for a first level pass, +120 for a Boss clear; 7 ranks per mode (Card Cub→Card
 Myth / Novice→Nemesis), 12 badges — all derived from real history, never
 hand-granted.
 

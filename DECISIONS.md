@@ -348,3 +348,11 @@ reverse; say the word on any of them.
 93. **The guide's kid answers are guard-tested like all kid copy** — and the
     guard caught the question "Is it okay to sit out?" in its earlier wording
     ("Is sitting out bad?"). Reworded positively rather than weakening the test.
+
+94. **Refine pass.** The four private copies of fnv1a and three of the base64url
+    helpers collapsed into `coach/codec.ts` — frozen algorithms, since every
+    link in the wild validates against those exact bytes; the existing checksum
+    round-trip tests are the proof the extraction changed nothing. Six dead
+    exports removed. And the two XP constants the spec promised but nothing
+    paid — level-pass (+60, first pass only) and Boss-clear (+120) — are now
+    actually awarded.

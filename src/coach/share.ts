@@ -14,6 +14,7 @@
 import { ErrorTag, TAGS } from './mistakes';
 import { LEVEL_ORDER, Progress, levelProgress, median } from './progress';
 import { LevelId, PASS_MARK } from '../curriculum/types';
+import { fnv1a, fromBase64Url, toBase64Url } from './codec';
 
 export interface SharedScore {
   v: 1;
@@ -56,15 +57,6 @@ const CONTROL = new RegExp(
   'g',
 );
 
-function fnv1a(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
 /** Strip hidden characters, collapse whitespace, cap the length. */
 export function cleanName(raw: string): string {
   return [...raw.replace(CONTROL, '').replace(/\s+/g, ' ').trim()]
@@ -78,20 +70,6 @@ const clamp = (n: unknown, lo: number, hi: number, dp = 0): number => {
   const c = Math.min(hi, Math.max(lo, v));
   return dp === 0 ? Math.round(c) : Math.round(c * 10 ** dp) / 10 ** dp;
 };
-
-function utf8ToBase64Url(s: string): string {
-  const bytes = new TextEncoder().encode(s);
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function base64UrlToUtf8(s: string): string {
-  const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
-  const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
-  const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
 
 /**
  * The payload without its checksum, in a stable order.
@@ -108,7 +86,7 @@ function canonical(s: SharedScore): string {
 }
 
 export function encodeScore(score: SharedScore): string {
-  return utf8ToBase64Url(JSON.stringify({ ...score, h: fnv1a(canonical(score)) }));
+  return toBase64Url(JSON.stringify({ ...score, h: fnv1a(canonical(score)) }));
 }
 
 export interface DecodedScore {
@@ -121,7 +99,7 @@ export interface DecodedScore {
 export function decodeScore(payload: string): DecodedScore | null {
   let raw: Record<string, unknown>;
   try {
-    raw = JSON.parse(base64UrlToUtf8(payload.trim())) as Record<string, unknown>;
+    raw = JSON.parse(fromBase64Url(payload.trim())) as Record<string, unknown>;
   } catch {
     return null;
   }

@@ -16,6 +16,7 @@
 
 import { ErrorTag, TAGS } from './mistakes';
 import { SharedScore, cleanName } from './share';
+import { fnv1a, fromBase64Url, toBase64Url } from './codec';
 
 const KEY = 'poker-trainer:roster';
 
@@ -189,28 +190,6 @@ type Tuple = [string, number, number, number, number, number, string, number, st
 const toTuple = (s: SharedScore): Tuple =>
   [s.n, s.d, s.a, s.l, s.e, s.t, s.k ?? '', s.b ?? 0, s.g ?? ''];
 
-function fnv1a(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-function utf8ToBase64Url(s: string): string {
-  const bytes = new TextEncoder().encode(s);
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function base64UrlToUtf8(s: string): string {
-  const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
-  const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
-  return new TextDecoder().decode(Uint8Array.from(bin, (ch) => ch.charCodeAt(0)));
-}
-
 const clamp = (n: unknown, lo: number, hi: number, dp = 0): number => {
   const v = typeof n === 'number' && Number.isFinite(n) ? n : lo;
   const c = Math.min(hi, Math.max(lo, v));
@@ -220,7 +199,7 @@ const clamp = (n: unknown, lo: number, hi: number, dp = 0): number => {
 export function encodeBoard(scores: SharedScore[]): string {
   const rows = scores.slice(0, MAX_ENTRIES).map(toTuple);
   const body = JSON.stringify(rows);
-  return utf8ToBase64Url(JSON.stringify({ v: 1, b: rows, h: fnv1a(body) }));
+  return toBase64Url(JSON.stringify({ v: 1, b: rows, h: fnv1a(body) }));
 }
 
 export interface DecodedBoard { scores: SharedScore[]; intact: boolean; }
@@ -229,7 +208,7 @@ export interface DecodedBoard { scores: SharedScore[]; intact: boolean; }
 export function decodeBoard(payload: string): DecodedBoard | null {
   let raw: { v?: unknown; b?: unknown; h?: unknown };
   try {
-    raw = JSON.parse(base64UrlToUtf8(payload.trim())) as typeof raw;
+    raw = JSON.parse(fromBase64Url(payload.trim())) as typeof raw;
   } catch {
     return null;
   }

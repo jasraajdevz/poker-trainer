@@ -9,7 +9,7 @@
 
 import { Card, createRng, makeDeck, shuffle, cardsToString } from '../engine/cards';
 import { equityVsRange } from '../engine/equity';
-import { Range, handClassName, handClassOf, parseRange, rangeToPercent } from '../engine/ranges';
+import { Range, handClassName, handClassOf } from '../engine/ranges';
 import { POSITIONS, Position, openingPercent, openingRange } from '../engine/preflopChart';
 import { ErrorTag } from '../coach/mistakes';
 import { Drill, DrillAnswers, DrillFeedback, LevelModule, ProofLine } from './types';
@@ -167,7 +167,3 @@ export const L3: LevelModule = {
   generate: (i, s, n) => build(i, s, n),
 };
 
-export const buildL3 = build;
-export { SEATS as L3_SEATS };
-export const L3_REFERENCE = parseRange('22+');
-export const rangeWidth = rangeToPercent;

@@ -11,6 +11,8 @@
  * relaunch the confetti.
  */
 
+import { fnv1a, fromBase64Url, toBase64Url } from './codec';
+
 const PARTY_KEY = 'poker-trainer:party';
 const POINTS_KEY = 'poker-trainer:bp';
 const SEEN_KEY = 'poker-trainer:party-seen';
@@ -205,36 +207,14 @@ export const PARTYGOER = 'Partygoer';
 // Link payload
 // ---------------------------------------------------------------------------
 
-function fnv1a(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-const b64url = (s: string): string => {
-  const bytes = new TextEncoder().encode(s);
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-};
-
-const unb64url = (s: string): string => {
-  const b = s.replace(/-/g, '+').replace(/_/g, '/');
-  const bin = atob(b + '='.repeat((4 - (b.length % 4)) % 4));
-  return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
-};
-
 export function encodeParty(p: Party): string {
   const row = [p.name, p.host, p.at, p.duration];
-  return b64url(JSON.stringify({ v: 1, p: row, h: fnv1a(JSON.stringify(row)) }));
+  return toBase64Url(JSON.stringify({ v: 1, p: row, h: fnv1a(JSON.stringify(row)) }));
 }
 
 export function decodeParty(payload: string): Party | null {
   try {
-    const raw = JSON.parse(unb64url(payload.trim())) as { v?: unknown; p?: unknown };
+    const raw = JSON.parse(fromBase64Url(payload.trim())) as { v?: unknown; p?: unknown };
     if (raw.v !== 1 || !Array.isArray(raw.p) || raw.p.length < 4) return null;
     const [name, host, at, duration] = raw.p as [unknown, unknown, unknown, unknown];
     if (typeof at !== 'number' || !Number.isFinite(at)) return null;

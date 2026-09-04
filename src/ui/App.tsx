@@ -24,9 +24,9 @@ import {
 import { discoBeat } from '../audio/discoBeat';
 import { sfx } from '../audio/sfx';
 import {
-  BADGES, BadgeDef, Mode, RankState, earnedBadges, loadBestStreak, loadMode, loadSeenBadges,
-  loadXp, newlyEarned, rankFor, saveBestStreak, saveSeenBadges, saveXp, setMode as persistMode,
-  cfg,
+  BADGES, BadgeDef, Mode, RankState, XP_BOSS_CLEAR, XP_LEVEL_PASS, earnedBadges, loadBestStreak,
+  loadMode, loadSeenBadges, loadXp, newlyEarned, rankFor, saveBestStreak, saveSeenBadges, saveXp,
+  setMode as persistMode, cfg,
 } from '../coach/profile';
 import { Onboarding } from './views/Onboarding';
 import { BadgeToast, RankUpToast } from './components/Celebrate';
@@ -358,7 +358,16 @@ export function App() {
             onScored={onScored}
             timeTrend={timeTrend(progress, view.id)}
             onResult={onResult}
-            onFinish={() => setProgress((p) => finishAttempt(p, view.id, level.drillCount, cfg().passMark))}
+            onFinish={(correct, total) => {
+              // Passing a level for the FIRST time pays its XP bonus — the
+              // constant existed since the XP system landed but was never
+              // wired, so finishing a level felt no different from quitting.
+              const firstPass =
+                correct / total >= cfg().passMark
+                && !levelProgress(progress, view.id).completed;
+              setProgress((p) => finishAttempt(p, view.id, level.drillCount, cfg().passMark));
+              if (firstPass) onScored(XP_LEVEL_PASS, 0);
+            }}
             onShare={(c, t, ms) => shareRun(view.id, level.title, c, t, ms)}
             onExit={home}
           />
@@ -419,6 +428,7 @@ export function App() {
               if (correct >= BOSS_PASS) {
                 setProgress((p) => clearTag(p, view.boss!));
                 setBossLabel(`Boss cleared — ${correct}/${total}. That leak is retired.`);
+                onScored(XP_BOSS_CLEAR, 0);
               } else {
                 setBossLabel(`${correct}/${total}. You need ${BOSS_PASS} to clear it. The leak stays.`);
               }

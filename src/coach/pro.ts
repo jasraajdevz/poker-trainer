@@ -12,17 +12,10 @@
  * does not unlock different opinions — the maths is the same maths.
  */
 
+import { fnv1a } from './codec';
+
 const KEY = 'poker-trainer:tier';
 const CODE_HASH = 2599198427;
-
-function fnv1a(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
 
 export const normalise = (s: string): string => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
